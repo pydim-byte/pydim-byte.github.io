@@ -8,5 +8,6 @@
 %>
 title: <%* tR += title %>
 date: <% tp.date.now("yyyy-MM-DD") %> 
-feed: <%* "show" %>
+feed: <% "show" %>
+
 ---

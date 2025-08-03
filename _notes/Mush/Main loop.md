@@ -1,7 +1,7 @@
 ---
 title: Main loop
-date: 2025-08-03 
-feed: 
+date: 2025-08-03
+feed: show
 ---
 ```
 # завантажуємо бібліотеку pygame
@@ -16,7 +16,7 @@ RED = (255, 0, 0)
 pygame.init()
 
 # Екран
-screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+screen = pygame.display.set_mode((800, 600), pygame.RESIZABLE)
 
 #Задаємо FPS грі 
 clock = pygame.time.Clock()
