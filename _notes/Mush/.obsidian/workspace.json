@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Full screen.md",
+                "file": "Levels.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Full screen"
+              "title": "Levels"
             }
           }
         ],
@@ -184,8 +184,11 @@
   },
   "active": "144a2d18ca96b8a4",
   "lastOpenFiles": [
-    "test.md",
+    "Untitled.md",
+    "Levels.md",
     "Full screen.md",
+    "Main loop.md",
+    "test.md",
     "screen.md",
     "Templates/YML.md",
     "Екран.md",
