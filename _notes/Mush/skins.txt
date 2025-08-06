@@ -1,0 +1,42 @@
+Бант      
+
+	 pygame.draw.polygon(win, PINK, [
+        (player.centerx + 10, player.centery - 30),  # Top of the triangle
+        (player.centerx , player.centery - 20),  # Bottom-left
+        (player.centerx + 18, player.centery - 10)  # Bottom-right
+        ])
+        pygame.draw.polygon(win, PINK, [
+        (player.centerx - 10, player.centery - 30),  # Top of the triangle
+        (player.centerx , player.centery - 20),  # Bottom-left
+        (player.centerx - 18, player.centery - 10)  # Bottom-right
+        ])
+
+
+Кіт
+
+        pygame.draw.polygon(win, BLACK, [
+        (player.centerx + 10, player.centery - 30),  # Top of the triangle
+        (player.centerx + 5, player.centery - 20),  # Bottom-left
+        (player.centerx + 18, player.centery - 10)  # Bottom-right
+        ])
+        pygame.draw.polygon(win, BLACK, [
+        (player.centerx - 10, player.centery - 30),  # Top of the triangle
+        (player.centerx - 5, player.centery - 20),  # Bottom-left
+        (player.centerx - 18, player.centery - 10)  # Bottom-right
+        ])
+        pygame.draw.rect(win, BLACK, (player.centerx - 25, player.centery + 5, 12, 2) )
+        pygame.draw.rect(win, BLACK, (player.centerx - 25, player.centery + 1, 12, 2) )
+        pygame.draw.rect(win, BLACK, (player.centerx - 25, player.centery - 3, 12, 2) )
+
+        pygame.draw.rect(win, BLACK, (player.centerx + 13, player.centery + 5, 12, 2) )
+        pygame.draw.rect(win, BLACK, (player.centerx + 13, player.centery + 1, 12, 2) )
+        pygame.draw.rect(win, BLACK, (player.centerx + 13, player.centery - 3, 12, 2) )
+
+
+Очкарик
+
+        pygame.draw.circle(win, BLACK, (player.centerx - 10, player.centery - 10), 5, 2)
+        pygame.draw.circle(win, BLACK, (player.centerx + 10, player.centery - 10), 5, 2)
+        pygame.draw.circle(win, BLACK, (player.centerx - 10, player.centery - 10), 1)
+        pygame.draw.circle(win, BLACK, (player.centerx + 10, player.centery - 10), 1)
+        pygame.draw.rect(win, BLACK, (player.centerx - 7, player.centery - 10, 14, 2) )
