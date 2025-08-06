@@ -5,12 +5,9 @@ feed: show
 ---
 https://www.youtube.com/watch?v=r0ixaTQxsUI
 
-```
-class Gamestate:
-    def __init__(self):
-        pygame.init()
-        self.screen = pygame.display.set_mode((800, 600), pygame.RESIZABLE)
-        clock = pygame.time.Clock()
-          
-```
+TODO:
+-All levels completed popup
+-After (Play again, Quit)
+-In Menu() add Select levels under Play
+
 

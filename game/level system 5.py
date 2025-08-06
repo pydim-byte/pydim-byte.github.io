@@ -5,6 +5,12 @@ import pygame
 pygame.init()
 clock = pygame.time.Clock()
 
+#Music 
+pygame.mixer.music.set_volume(0.2)
+pygame.mixer.music.load('yoshi.mp3')
+pygame.mixer.music.play(-1)
+
+
 # Window
 WIDTH, HEIGHT = 800, 600
 win = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -28,7 +34,7 @@ class Assets:
     def __init__(self):   
         self.player_size = 40
         self.player = pygame.Rect(100, 100, self.player_size, self.player_size)
-        self.player_speed = 10
+        self.player_speed = 12
         self.mushroom_radius = 15
         self.mushrooms = []
 
@@ -41,6 +47,11 @@ class Assets:
         pygame.draw.circle(win, BLACK, (player.centerx - 10, player.centery - 10), 5)
         pygame.draw.circle(win, BLACK, (player.centerx + 10, player.centery - 10), 5)
         pygame.draw.arc(win, BLACK, (player.centerx - 10, player.centery - 5, 20, 15), 3.14, 0, 2)
+        #pygame.draw.circle(win, BLACK, (player.centerx - 10, player.centery - 10), 5, 2)
+        #pygame.draw.circle(win, BLACK, (player.centerx + 10, player.centery - 10), 5, 2)
+        #pygame.draw.circle(win, BLACK, (player.centerx - 10, player.centery - 10), 1)
+        #pygame.draw.circle(win, BLACK, (player.centerx + 10, player.centery - 10), 1)
+        #pygame.draw.rect(win, BLACK, (player.centerx - 7, player.centery - 10, 14, 2) )
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT] and player.x > 0:
@@ -57,7 +68,7 @@ class Assets:
     def Mushroom(self):
         """Create mushrooms and return the list of mushrooms."""
         if not self.mushrooms:  # Only generate mushrooms once
-            for _ in range(5):  # Reduce the number of mushrooms to 50 for performance
+            for _ in range(50):  # Reduce the number of mushrooms to 50 for performance
                 x = random.randint(50, WIDTH - 50)
                 y = random.randint(50, HEIGHT - 50)
                 self.mushrooms.append(pygame.Rect(x, y, self.mushroom_radius * 2, self.mushroom_radius * 2))
@@ -104,7 +115,7 @@ class Assets2:
     def Mushroom(self):
         """Create mushrooms and return the list of mushrooms."""
         if not self.mushrooms:  # Only generate mushrooms once
-            for _ in range(5):  # Reduce the number of mushrooms to 50 for performance
+            for _ in range(50):  # Reduce the number of mushrooms to 50 for performance
                 x = random.randint(50, WIDTH - 50)
                 y = random.randint(50, HEIGHT - 50)
                 self.mushrooms.append(pygame.Rect(x, y, self.mushroom_radius * 2, self.mushroom_radius * 2))
@@ -153,7 +164,56 @@ class Assets3:
     def Mushroom(self):
         """Create mushrooms and return the list of mushrooms."""
         if not self.mushrooms:  # Only generate mushrooms once
-            for _ in range(5):  # Reduce the number of mushrooms to 50 for performance
+            for _ in range(50):  # Reduce the number of mushrooms to 50 for performance
+                x = random.randint(50, WIDTH - 50)
+                y = random.randint(50, HEIGHT - 50)
+                self.mushrooms.append(pygame.Rect(x, y, self.mushroom_radius * 2, self.mushroom_radius * 2))
+
+        for m in self.mushrooms:
+            pygame.draw.rect(win, BROWN, (m.centerx - 3, m.bottom - 10, 6, 10))  # Mushroom stem
+            pygame.draw.ellipse(win, RED, (m.x, m.y, self.mushroom_radius * 2, self.mushroom_radius))  # Mushroom cap
+        
+        return self.mushrooms  # Return the mushrooms list for collision detection
+
+
+class Assets4:
+    def __init__(self):   
+        self.player_size = 40
+        self.player = pygame.Rect(100, 100, self.player_size, self.player_size)
+        self.player_speed = 10
+        self.mushroom_radius = 15
+        self.mushrooms = []
+
+    def Player(self):
+        """Draw the player and return the player rect."""
+        player = self.player
+        player_size = self.player_size
+        player_speed = self.player_speed
+        pygame.draw.circle(win, WHITE, player.center, self.player_size // 2)
+        pygame.draw.circle(win, BLACK, (player.centerx - 10, player.centery - 10), 5)
+        pygame.draw.circle(win, BLACK, (player.centerx + 10, player.centery - 10), 5)
+        pygame.draw.arc(win, BLACK, (player.centerx - 10, player.centery - 5, 20, 15), 3.14, 0, 2)
+        #pygame.draw.ellipse(win, (BLACK), (player.centerx - 15, player.centery - 25, 30, 15))  
+        #pygame.draw.rect(win, (BLACK), (player.centerx - 10, player.centery - 15, 20, 5)) 
+        pygame.draw.ellipse(win, (BLACK), (player.centerx - 15, player.centery - 25, 30, 15))
+        
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT] and player.x > 0:
+            player.x -= player_speed
+        if keys[pygame.K_RIGHT] and player.x < WIDTH - player_size:
+            player.x += player_speed
+        if keys[pygame.K_UP] and player.y > 0:
+            player.y -= player_speed
+        if keys[pygame.K_DOWN] and player.y < HEIGHT - player_size:
+            player.y += player_speed
+
+        return self.player  # Return the player rect for collision detection
+
+    def Mushroom(self):
+        """Create mushrooms and return the list of mushrooms."""
+        if not self.mushrooms:  # Only generate mushrooms once
+            for _ in range(50):  # Reduce the number of mushrooms to 50 for performance
                 x = random.randint(50, WIDTH - 50)
                 y = random.randint(50, HEIGHT - 50)
                 self.mushrooms.append(pygame.Rect(x, y, self.mushroom_radius * 2, self.mushroom_radius * 2))
@@ -207,6 +267,8 @@ def Next_level(current_level):
                         Game2()
                     elif current_level == 2:
                         Game3()
+                    elif current_level == 3:
+                        Game4()
                     
                    
 
@@ -247,7 +309,7 @@ def Menu():
 
 
        
-        menu_text = font_large.render("Main Menu", True, BLACK)
+        menu_text = font_large.render("Mushroom Collector", True, BLACK)
         win.blit(menu_text, menu_text.get_rect(center=(WIDTH // 2, 100)))
         pygame.display.flip()  # Update the display once per loop
 
@@ -259,6 +321,7 @@ def Menu():
 
 
 def Game():
+    level_text = 1
     running = True
     assets = Assets()
     score = 0
@@ -290,7 +353,9 @@ def Game():
 
         # Display score
         text = font.render(f"Score: {score}", True, BLACK)
+        level_text_display = font.render(f"Level: {level_text}", True, BLACK)
         win.blit(text, (10, 10))
+        win.blit(level_text_display, (10, 30))
 
         # Update the display
         pygame.display.flip()
@@ -303,6 +368,7 @@ def Game():
 
 
 def Game2():
+    level_text = 2
     running = True
     assets = Assets2()
     score = 0
@@ -332,7 +398,9 @@ def Game2():
 
         # Display score
         text = font.render(f"Score: {score}", True, BLACK)
+        level_text_display = font.render(f"Level: {level_text}", True, BLACK)
         win.blit(text, (10, 10))
+        win.blit(level_text_display, (10, 30))
 
         # Update the display
         pygame.display.flip()
@@ -345,6 +413,7 @@ def Game2():
 
 
 def Game3():
+    level_text = 3
     running = True
     assets = Assets3()
     score = 0
@@ -372,11 +441,13 @@ def Game3():
 
         if len(mushrooms) == 0:
             running = False
-            Game()
+            Next_level(3)
 
         # Display score
         text = font.render(f"Score: {score}", True, BLACK)
+        level_text_display = font.render(f"Level: {level_text}", True, BLACK)
         win.blit(text, (10, 10))
+        win.blit(level_text_display, (10, 30))
 
         # Update the display
         pygame.display.flip()
@@ -387,5 +458,50 @@ def Game3():
     pygame.quit()
     sys.exit()
 
+def Game4():
+    level_text = 4
+    running = True
+    assets = Assets4()
+    score = 0
+    font = pygame.font.Font(None, 36)  # Set font for score display
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+
+
+        # Check for player collision with mushrooms
+        win.fill(YELLOW)
+        player = assets.Player()
+        mushrooms = assets.Mushroom()
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_f]:
+            pass
+        
+        for m in mushrooms[:]:
+            if player.colliderect(m):
+                mushrooms.remove(m)  # Remove mushroom on collision
+                score += 1  # Increase score
+
+
+        if len(mushrooms) == 0:
+            running = False
+            Game()
+
+        # Display score
+        text = font.render(f"Score: {score}", True, BLACK)
+        level_text_display = font.render(f"Level: {level_text}", True, BLACK)
+        win.blit(text, (10, 10))
+        win.blit(level_text_display, (10, 30))
+
+        # Update the display
+        pygame.display.flip()
+
+        # Control frame rate
+        clock.tick(60)
+
+    pygame.quit()
+    sys.exit()
 
 Menu()
