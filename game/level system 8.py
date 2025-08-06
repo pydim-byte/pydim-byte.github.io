@@ -42,6 +42,7 @@ class Assets:
         self.mushrooms = []
         self.spike = []
         self.spike_rects = []
+        self.spikes_generated = False
 
     def Player(self):
         """Draw the player and return the player rect."""
@@ -82,9 +83,9 @@ class Assets:
         
         
 
-        if not self.spike:  # Only generate spikes once
+        if not self.spikes_generated:
             for _ in range(self.mushroom_count // 1):  # Number of spikes you want to generate
-                while True:  
+                while True:
                     x = random.randint(50, WIDTH - 50)
                     y = random.randint(50, HEIGHT - 50)
                     # Ensure the spikes are not generated in the restricted area (e.g., within (60, 160))
@@ -92,6 +93,9 @@ class Assets:
                         vertices = [(x, y), (x - 15, y + 30), (x + 15, y + 30)]  # Random triangle points (spike shape)
                         self.spike.append(vertices)  # Store the vertices of the spike (polygon)
                         break
+
+            # Mark that spikes have been generated
+            self.spikes_generated = True
 
         
         for s in self.spike:
