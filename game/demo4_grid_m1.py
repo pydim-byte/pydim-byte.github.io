@@ -597,7 +597,7 @@ def Shop(current_level):
         # Draw buttons
         Equip_button.draw(win)  
         add_button.draw(win)   
-        text_box = TextBox("Custom Height Box", font_medium, BLACK, GRAY, padding=10, width=300, height=60, x=450, y=100)
+        text_box = TextBox("Custom Height Box", font_medium, BLACK, GRAY, padding=10, width=300, height=60, x=460, y=450)
         text_box.draw(win)
 
         
