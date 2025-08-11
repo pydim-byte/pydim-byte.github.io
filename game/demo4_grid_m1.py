@@ -597,8 +597,10 @@ def Shop(current_level):
         # Draw buttons
         Equip_button.draw(win)  
         add_button.draw(win)   
-        text_box = TextBox("Custom Height Box", font_medium, BLACK, GRAY, padding=10, width=300, height=60, x=460, y=450)
+        text_box = TextBox("I can sell you this \n    skin for 30 (M)\n          SKIN", font_medium, BLACK, GRAY, padding=10, width=300, height=200, x=460, y=100)
         text_box.draw(win)
+        pygame.draw.rect(win, BROWN, (685, 200, 6, 10))  # stem
+        pygame.draw.ellipse(win, RED, (1, 1, 30, 30))  # cap
 
         
 
