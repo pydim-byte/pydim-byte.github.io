@@ -22,10 +22,19 @@ win = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Mushroom Collector")
 
 # Colors
+
+FOREST_GRADIENT = [
+    (34, 139, 34),   # Forest green
+    (0, 100, 0),     # Dark green
+    (0, 70, 0),      # Deeper green
+    (0, 50, 0)       # Darkest green
+]
+
 BLUE = (100, 100, 200)
 YELLOW = (200, 200, 100)
 GOLD = (255, 215, 0)
 ORANGE = (255, 165, 0)
+DARK_GREEN = (11, 46, 33)
 GREEN = (100, 200, 100)
 GREEN2 = (46,139,87)
 GREEN3 = (60,179,113)
@@ -53,8 +62,7 @@ My_skins = {
     4: {"skin": "bro", "unlocked": False},
     5: {"skin": "girl", "unlocked": True},
     6: {"skin": "cat", "unlocked": True},
-    7: {"skin": "nerd", "unlocked": True}
-    
+    7: {"skin": "nerd", "unlocked": True}  
 }
 
 
@@ -62,14 +70,15 @@ Levels_completed = {}
 
 
 LEVELS = {
-    1: {"level_color": GREEN, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": False, "with_chest": False, "sky_mushrooms": False, "with_flood": False},
-    2: {"level_color": GREEN2, "with_spikes": True, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": False, "with_chest": False, "sky_mushrooms": False, "with_flood": False},
-    3: {"level_color": GREEN3, "with_spikes": False, "with_bad_mushrooms": True, "moving_mushrooms": False, "with_enemy": False, "with_chest": False, "sky_mushrooms": False, "with_flood": False},
-    4: {"level_color": GREEN4, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": True, "with_chest": False, "sky_mushrooms": False, "with_flood": False},
-    5: {"level_color": GREEN, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": True, "with_enemy": False, "with_chest": False, "sky_mushrooms": False, "with_flood": False},
-    6: {"level_color": GREEN2, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": False, "with_chest": True, "sky_mushrooms": False, "with_flood": False},
-    7: {"level_color": GREEN2, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": False, "with_chest": False, "sky_mushrooms": True, "with_flood": False},
-    8: {"level_color": GREEN4, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": False, "with_chest": False, "sky_mushrooms": False, "with_flood": True},
+    1: {"level_color": GREEN, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": False, "with_chest": False, "sky_mushrooms": False, "with_flood": False, "vacuum": False},
+    2: {"level_color": GREEN2, "with_spikes": True, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": False, "with_chest": False, "sky_mushrooms": False, "with_flood": False, "vacuum": False},
+    3: {"level_color": GREEN3, "with_spikes": False, "with_bad_mushrooms": True, "moving_mushrooms": False, "with_enemy": False, "with_chest": False, "sky_mushrooms": False, "with_flood": False, "vacuum": False},
+    4: {"level_color": GREEN4, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": True, "with_chest": False, "sky_mushrooms": False, "with_flood": False, "vacuum": False},
+    5: {"level_color": GREEN, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": True, "with_enemy": False, "with_chest": False, "sky_mushrooms": False, "with_flood": False, "vacuum": False},
+    6: {"level_color": GREEN, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": False, "with_chest": False, "sky_mushrooms": False, "with_flood": False, "vacuum": True},
+    7: {"level_color": GREEN2, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": False, "with_chest": True, "sky_mushrooms": False, "with_flood": False, "vacuum": False},
+    8: {"level_color": GREEN2, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": False, "with_chest": False, "sky_mushrooms": True, "with_flood": False, "vacuum": False},
+    9: {"level_color": GREEN4, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": False, "with_chest": False, "sky_mushrooms": False, "with_flood": True}, "vacuum": False,
 }
 
 max_level = len(LEVELS)
@@ -115,6 +124,7 @@ class Assets:
         self.moving_mushrooms = config.get("moving_mushrooms", False)
         self.sky_mushrooms = config.get("sky_mushrooms", False)
         self.with_flood = config.get("with_flood", False)
+        self.vacuum = config.get("vacuum", False)
 
 
         self.last_spawn_time = 0  # Time of the last mushroom spawn (in ms)
@@ -164,8 +174,6 @@ class Assets:
         else:
             return None
 
-
-
     def Enemy(self):
         enemy = self.enemy
         with_enemy = self.with_enemy
@@ -207,8 +215,8 @@ class Assets:
 
 
     def Merchant(self):
-        screen_center_x = WIDTH // 2 - 200
-        screen_center_y = HEIGHT // 2 - 100
+        screen_center_x = WIDTH // 2 
+        screen_center_y = HEIGHT // 2 - 175
 
         pygame.draw.ellipse(win, GOLD, (screen_center_x - 30, screen_center_y - 40, 60, 50))
         pygame.draw.circle(win, BROWN, (screen_center_x, screen_center_y), self.player_size // 2)
@@ -216,7 +224,6 @@ class Assets:
         pygame.draw.circle(win, BLACK, (screen_center_x + 10, screen_center_y - 10), 5)
         pygame.draw.arc(win, BLACK, (screen_center_x - 10, screen_center_y - 5, 20, 15), 3.14, 0, 2)
         
-
 
     def Player(self):
         player = self.player
@@ -421,7 +428,7 @@ class Assets:
             if self.sky_mushrooms:
                 m.y += 2
                 if m.y > 600:
-                    Over(7)
+                    Over(8)
             pygame.draw.rect(win, BROWN, (m.centerx - 3, m.bottom - 10, 6, 10))  # stem
             pygame.draw.ellipse(win, RED, (m.x, m.y, self.mushroom_radius * 2, self.mushroom_radius))  # cap
 
@@ -438,6 +445,9 @@ class Assets:
                 # Update position
                 m.centerx += x_vel
                 m.centery += y_vel
+            if self.vacuum:
+                m.centerx -= x_vel
+                m.centery -= y_vel
 
                 # Prevent mushrooms from going out of bounds (considering mushroom size)
                 if m.left < 0:  # Left boundary
@@ -610,6 +620,7 @@ class Assets:
                 return True  # Or update score, collected, etc. here
         return False
 
+
 def Game(level_num):
     config = LEVELS[level_num]
     assets = Assets(config)
@@ -633,11 +644,12 @@ def Game(level_num):
                 sys.exit()
 
         win.fill(assets.level_color)  # Fill the screen with level background color
+        flood = assets.Flood()
         player = assets.Player()
         control = assets.Control()
         mushrooms, spikes, bad_mushrooms = assets.Mushroom()  # Now always two lists
         enemy = assets.Enemy()
-        flood = assets.Flood()
+
 
         # Safely handle key and chest (may be None)
         key = assets.Key()  # Will be None if with_chest == False
@@ -656,17 +668,17 @@ def Game(level_num):
         for b in bad_mushrooms[:]:
             if player.colliderect(b):
                 running = False
-                Over(3)
+                Over(level_num)
 
         # Spike collision
         for rect in spikes:
             if player.colliderect(rect):
                 running = False
-                Over(2)
+                Over(level_num)
 
         if enemy and player.colliderect(enemy):
             running = False
-            Over(4)
+            Over(level_num)
 
         # Check for key and chest collision only if both exist
         if assets.key and assets.chest:  # Check if both key and chest exist
@@ -675,7 +687,11 @@ def Game(level_num):
                 assets.chest = None
 
 
+        keys = pygame.key.get_pressed()
 
+        if keys[pygame.K_r]:
+            running = False
+            Over(level_num)
 
 
 
@@ -687,9 +703,9 @@ def Game(level_num):
                 Levels_completed[level_num] = {"completed": True}
                 running = False
                 
-                if level_num in (1,3,5):
+                if level_num in (1,3,5,8, 9):
                     # For level 1, skip skin unlock, just go to next level or victory
-                    if level_num == max_level:
+                    if level_num == 9:
                         Victory()
                     else:
                         Next_level(level_num)
@@ -721,36 +737,6 @@ def Game(level_num):
 
         pygame.display.flip()
         clock.tick(60)
-
-
-class Button:
-    def __init__(self, text, x, y, width, height):
-        self.text = text
-        self.rect = pygame.Rect(x, y, width, height)
-
-    def draw(self, screen):
-        pygame.draw.rect(screen, GRAY, self.rect)
-        text_surface = font_medium.render(self.text, True, BLACK)
-        text_rect = text_surface.get_rect(center=self.rect.center)
-        screen.blit(text_surface, text_rect)
-
-    def is_clicked(self, pos):
-        return self.rect.collidepoint(pos)
-
-
-class Button2:
-    def __init__(self, text, x, y, width, height):
-        self.text = text
-        self.rect = pygame.Rect(x, y, width, height)
-
-    def draw(self, screen):
-        pygame.draw.rect(screen, GRAY2, self.rect)
-        text_surface = font_medium.render(self.text, True, BLACK)
-        text_rect = text_surface.get_rect(center=self.rect.center)
-        screen.blit(text_surface, text_rect)
-
-    def is_clicked(self, pos):
-        return self.rect.collidepoint(pos)
 
 
 class TextBox:
@@ -810,38 +796,114 @@ class TextBox:
         for i, line_surface in enumerate(self.text_surfaces):
             screen.blit(line_surface, self.text_rect_tops[i])
 
-
+def handle_shop_exit(return_to_level):
+    """Handle exiting the shop and returning to appropriate screen"""
+    if return_to_level >= max_level:
+        Victory()
+    else:
+        Game(return_to_level + 1)
 
 def Shop(return_to_level):
     global mushroom_inventory, My_skins, current_skin
     running = True
     assets = Assets(LEVELS[1])
-    pygame.event.clear()
+    
+    # Colors
+    STALL_COLOR = (139, 69, 19)  # Rich wood brown
+    COUNTER_COLOR = (101, 67, 33)  # Darker wood
+    PANEL_COLOR = (0, 0, 0, 180)  # Semi-transparent black
+    BORDER_COLOR = (160, 82, 45, 220)  # Lighter wood border
 
-    # List of skins you can buy (locked ones)
     purchasable = [sid for sid, data in My_skins.items() if not data["unlocked"]]
-
-    # If nothing to buy, just go to next step
     if not purchasable:
-        if return_to_level >= max_level:
-            Victory()
-        else:
-            Game(return_to_level + 1)
+        handle_shop_exit(return_to_level)
         return
 
     skin_id = purchasable[0]
-    skin_name = My_skins[3]["skin"]
+    skin_name = My_skins[skin_id]["skin"]
     cost = 50
 
-    buy_button = Button(f"Buy ({cost})", WIDTH // 2 - 350, HEIGHT // 2 + 150, 300, 100)
-    skip_button = Button("Skip shop", WIDTH // 2 + 50, HEIGHT // 2 + 150, 300, 100)
+    # Create styled buttons
+    buy_button = Button(
+        f"Purchase ({cost})", 
+        WIDTH//2 - 300, HEIGHT-100, 
+        250, 60, 
+        STALL_COLOR,
+        text_color=WHITE
+    )
+    skip_button = Button(
+        "Maybe Later", 
+        WIDTH//2 + 50, HEIGHT-100, 
+        250, 60, 
+        STALL_COLOR,
+        text_color=WHITE
+    )
 
-    previous_skin = current_skin
+    def draw_merchant_stall():
+        # Stall base (3 posts with roof)
+        pygame.draw.rect(win, STALL_COLOR, (WIDTH//2-200, HEIGHT//2-50, 400, 20))  # Roof
+        pygame.draw.polygon(win, STALL_COLOR, [
+            (WIDTH//2-200, HEIGHT//2-50),
+            (WIDTH//2, HEIGHT//2-120),
+            (WIDTH//2+200, HEIGHT//2-50)
+        ])
+        
+        # Stall counter
+        pygame.draw.rect(win, COUNTER_COLOR, (WIDTH//2-180, HEIGHT//2-30, 360, 30))
+        pygame.draw.rect(win, BORDER_COLOR, (WIDTH//2-180, HEIGHT//2-30, 360, 30), 3)
+        
+        # Stall posts
+        for x in [WIDTH//2-175, WIDTH//2+175]:
+            pygame.draw.rect(win, STALL_COLOR, (x-5, HEIGHT//2, 10, 100))
+        pygame.draw.rect(win, GRAY2, (x - 350, HEIGHT//2 + 0, 350, 100))
+        pygame.draw.rect(win, STALL_COLOR, (x - 350, HEIGHT//2 + 95, 350, 5))
+
+
+        # Draw merchant behind counter
+        assets.player.center = (WIDTH//2, HEIGHT//2 + 20)
+        assets.Merchant()
+
+    def draw_skin_display():
+        # Skin display panel
+        panel = pygame.Surface((300, 150), pygame.SRCALPHA)
+        pygame.draw.rect(panel, PANEL_COLOR, (0, 0, 300, 150), border_radius=10)
+        pygame.draw.rect(panel, BORDER_COLOR, (0, 0, 300, 150), 3, border_radius=10)
+        
+        # Skin name
+        name_text = font_large.render(skin_name, True, GOLD)
+        panel.blit(name_text, (150 - name_text.get_width()//2, 20))
+        
+        # Cost
+        cost_text = font_medium.render(f"{cost} Mushrooms", True, WHITE)
+        panel.blit(cost_text, (150 - cost_text.get_width()//2, 80))
+        
+        win.blit(panel, (WIDTH//2 - 150, 100))
+
+    def draw_current_mushrooms():
+        text = font_medium.render(f"Mushrooms: {mushroom_inventory}", True, WHITE)
+        pygame.draw.rect(win, PANEL_COLOR, (20, 20, text.get_width()+20, text.get_height()+10), border_radius=5)
+        pygame.draw.rect(win, BORDER_COLOR, (20, 20, text.get_width()+20, text.get_height()+10), 2, border_radius=5)
+        win.blit(text, (30, 25))
 
     while running:
-        win.fill(GREEN)
-        assets.Merchant()  # Draw merchant in background
+        # Draw scene
+        draw_forest_gradient(win, FOREST_GRADIENT)
+        draw_merchant_stall()
+        #draw_skin_display()
+        draw_current_mushrooms()
+        
+        # Draw skin preview
+        current_skin_backup = current_skin
+        current_skin = skin_name
+        assets.player.center = (WIDTH//2, HEIGHT//2 + 50)
+        assets.Player()
+        current_skin = current_skin_backup
+        
+        # Draw buttons
+        buy_button.draw(win)
+        skip_button.draw(win)
 
+        # Event handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -849,423 +911,661 @@ def Shop(return_to_level):
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if buy_button.is_clicked(event.pos) and mushroom_inventory >= cost:
                     mushroom_inventory -= cost
-                    My_skins[3]["unlocked"] = True
+                    My_skins[skin_id]["unlocked"] = True
                     running = False
-                    New_skin(skin_id, return_to_level)  # Go to equip/add screen
-                    return
+                    New_skin(skin_id, return_to_level)
                 elif skip_button.is_clicked(event.pos):
-                    running = False
-                    if return_to_level >= max_level:
-                        Victory()
-                    else:
-                        Game(return_to_level + 1)
-                    return
-
-        buy_button.draw(win)
-        skip_button.draw(win)
-
-        # Text box with offer
-        text_box = TextBox(
-            f"I can sell you this\n   skin for {cost}\n",
-            font_medium, BLACK, GRAY, padding=10, width=300, height=200,
-            x=460, y=100
-        )
-        text_box.draw(win)
-
-        # Draw wooden stand / shop graphics (same as before)
-        pygame.draw.rect(win, BROWN, (90, 100, 220, 40))
-        pygame.draw.rect(win, BROWN, (120, 140, 30, 100))
-        pygame.draw.rect(win, BROWN, (250, 140, 30, 100))
-        pygame.draw.rect(win, BROWN, (70, 240, 260, 60))
-
-        pygame.draw.ellipse(win, BROWN, (668, 185, 40, 30))  # cap
-        pygame.draw.ellipse(win, RED, (663, 160, 50, 35))  # cap
-        for cx, cy in [(668, 182), (669, 174), (676, 188), (676, 168),
-                       (680, 178), (708, 178), (688, 188), (699, 185),
-                       (690, 179), (688, 169), (705, 170), (697, 170)]:
-            pygame.draw.circle(win, WHITE, (cx, cy), 3)
-
-        # Preview the new skin on player in center
-        current_skin_backup = current_skin
-        current_skin = skin_name
-        assets.player.center = (WIDTH // 2 + 200, HEIGHT // 2 - 55)
-        assets.Player()
-        current_skin = current_skin_backup
+                    handle_shop_exit(return_to_level)
 
         pygame.display.flip()
         clock.tick(60)
-
 
 
 def New_skin(skin_id, return_to_level):
     global current_skin, My_skins
-    running = True
-    assets = Assets(LEVELS[1])  # or any config you want
+    assets = Assets(LEVELS[1])
     previous_skin = current_skin
     new_skin_name = My_skins[skin_id]["skin"]
 
-    equip_button = Button("Equip", WIDTH // 2 - 350, HEIGHT // 2 + 150, 300, 100)
-    add_button = Button("Add to collection", WIDTH // 2 + 50, HEIGHT // 2 + 150, 300, 100)
+    def equip_action():
+        global current_skin
+        current_skin = new_skin_name
+        exit_to_next()
 
+    def collect_action():
+        global current_skin
+        current_skin = previous_skin
+        exit_to_next()
+
+    def exit_to_next():
+        if return_to_level >= max_level:
+            Victory()
+        else:
+            Game(return_to_level + 1)
+
+    # Create styled buttons
+    equip_button = Button(
+        "Equip Now", 
+        WIDTH//2 - 320, HEIGHT//2 + 150, 
+        250, 60, 
+        (139, 69, 19),  # Brown
+        equip_action,
+        (255, 255, 255)  # White text
+    )
+    
+    collect_button = Button(
+        "Add to Collection",
+        WIDTH//2 + 70, HEIGHT//2 + 150,
+        250, 60,
+        (139, 69, 19),
+        collect_action,
+        (255, 255, 255)
+    )
+
+    # Custom drawing for skin preview
+    def draw_skin_preview():
+        # Title text
+        title = font_large.render(f"New Skin Unlocked!", True, BLACK)
+        win.blit(title, (WIDTH//2 - title.get_width()//2, 80))
+        
+        # Skin name
+
+        
+
+
+    # Create menu instance
+    skin_menu = BaseMenu(
+        win,
+        font_medium,
+        font_large,
+        "",  # Empty title since we're drawing custom
+        [equip_button, collect_button],
+        use_gradient=True,
+        extra_draw=draw_skin_preview
+    )
+
+    # Main loop with keyboard support
+    running = True
+    clock = pygame.time.Clock()
     while running:
-        win.fill(GREEN)
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if equip_button.is_clicked(event.pos):
-                    current_skin = new_skin_name
+            
+            # Handle mouse events
+            skin_menu.handle_events(event)
+            
+            # Keyboard support
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1:  # Equip
+                    equip_action()
                     running = False
-                elif add_button.is_clicked(event.pos):
-                    current_skin = previous_skin
+                elif event.key == pygame.K_2:  # Collect
+                    collect_action()
                     running = False
-
-        equip_button.draw(win)
-        add_button.draw(win)
-
-        menu_text = font_large.render(f"New skin unlocked: {new_skin_name}", True, BLACK)
-        win.blit(menu_text, menu_text.get_rect(center=(WIDTH // 2, 100)))
-
-        # Temporarily set current_skin to new skin for preview
+                elif event.key == pygame.K_ESCAPE:  # Default to collect
+                    collect_action()
+                    running = False
+        
+        # Draw everything
+        skin_menu.draw()
+        
+        # Draw skin preview
         current_skin_backup = current_skin
         current_skin = new_skin_name
-
-        # Position player
-        assets.player.center = (WIDTH // 2, HEIGHT // 2)
-        assets.Player()  # This draws the player with the current_skin on the win surface
-
-        # Restore current_skin in case it changed elsewhere
+        assets.player.center = (WIDTH//2, HEIGHT//2)
+        assets.Player()
         current_skin = current_skin_backup
-
+        
         pygame.display.flip()
         clock.tick(60)
-
-    # Continue to next level or victory
-    if return_to_level >= max_level:
-        Victory()
-    else:
-        Game(return_to_level + 1)
-
-
-
-def Skin_menu():
-    running = True
-    pos = 1
-    assets = Assets(LEVELS[1])
-    global current_skin
-    global My_skins
-    previous_skin = current_skin
-    prev_button = Button("Previous", WIDTH // 2 - 350, HEIGHT // 2 + 150, 150, 100)
-    next_button = Button("Next", WIDTH // 2 + 200, HEIGHT // 2 + 150, 150, 100)
-    back_button = Button("Back", WIDTH // 2 - 75, HEIGHT // 2 + 150, 150, 100)
-    pygame.event.clear()
-
-    # Find the current position based on the current_skin
-    def find_current_pos(current_skin, skins):
-        for key, value in skins.items():
-            if value["skin"] == current_skin:
-                return key
-        return 1  # Default to 1 if the skin is not found (shouldn't happen)
-
-    # Get the initial position based on current_skin
-    pos = find_current_pos(current_skin, My_skins)
-
-    def get_next_pos(current_pos, skins, forward=True):
-        pos = current_pos
-        while True:
-            if forward:
-                pos += 1
-                if pos > len(skins):
-                    pos = 1
-            else:
-                pos -= 1
-                if pos < 1:
-                    pos = len(skins)
-            if skins[pos]["unlocked"]:
-                return pos
-
-    while running:
-        win.fill(GREEN)  # Fill the screen with green color
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False  # Exit the loop if the window is closed
-                pygame.quit()
-                sys.exit()
-
-            # Handle mouse click events for buttons
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = event.pos  # Get mouse position
-                if prev_button.is_clicked(mouse_pos):
-                    pos = get_next_pos(pos, My_skins, forward=False)
-                elif next_button.is_clicked(mouse_pos):
-                    pos = get_next_pos(pos, My_skins, forward=True)
-                elif back_button.is_clicked(mouse_pos):
-                    running = False
-                    Menu()
-
-        # Set current skin based on unlocked status
-        if My_skins[pos]["unlocked"]:
-            current_skin = My_skins[pos]["skin"]
-        else:
-            current_skin = "none"  # If not unlocked, reset to "none"
-
-        # Draw buttons
-        prev_button.draw(win)  
-        next_button.draw(win)  
-        back_button.draw(win) 
-
-        # Draw menu text
-        menu_text = font_large.render("Select your skin", True, BLACK)
-        win.blit(menu_text, menu_text.get_rect(center=(WIDTH // 2, 100)))
-
-        # Position player in center and draw the selected skin
-        assets.player.x = WIDTH // 2 - assets.player_size // 2
-        assets.player.y = HEIGHT // 2 - assets.player_size // 2
-        player = assets.Player()
-
-        pygame.display.flip()
-        clock.tick(60)  # Limit to 60 FPS
 
 
 def Next_level(current_level):
     global mushroom_inventory
-    if current_level == max_level:
-        Victory()
-    else:
-        running = True
-        pygame.event.clear()
-        start_ticks = pygame.time.get_ticks()
-
-        while running:
-            elapsed_time = pygame.time.get_ticks() - start_ticks
-            win.fill(GREEN)
-            title_text = font_large.render("Level complete", True, BLACK)
-            press_key = font_medium.render("Press SPACE to continue", True, BLACK)
-            
-            win.blit(title_text, title_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50)))
-            win.blit(press_key, press_key.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 50)))
-            
-            pygame.display.flip()
-
-            if elapsed_time > 1000:
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        pygame.quit()
-                        sys.exit()
-
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                        running = False  # always stop the loop on space
-
-                        # Shop check first
-                        if current_level >= 3 and mushroom_inventory >= 50:
-                            Shop(current_level)
-                            break  # shop handles what happens next
-
-                        # Then victory check
-                        if current_level == max_level:
-                            Victory()
-                            break
-
-                        # Otherwise go to next level
-                        Game(current_level + 1)
-                        break
     
- 
+    def continue_action():
+        if current_level >= 3 and mushroom_inventory >= 50:
+            Shop(current_level)
+        elif current_level == max_level:
+            Victory()
+        else:
+            Game(current_level + 1)
+    
+    def menu_action():
+        Menu()
 
-def Over(current_level):
-    running = True
-    pygame.event.clear()
-    start_ticks = pygame.time.get_ticks()
+    # Create buttons
+    continue_button = Button(
+        "Continue", 
+        WIDTH//2 - 100, HEIGHT//2 - 30, 
+        200, 60, 
+        (139, 69, 19),  # Brown
+        continue_action,
+        (255, 255, 255)  # White text
+    )
+    
+    menu_button = Button(
+        "Main Menu",
+        WIDTH//2 - 100, HEIGHT//2 + 170,
+        200, 60,
+        (139, 69, 19),
+        menu_action,
+        (255, 255, 255)
+    )
 
-    while running:
-        elapsed_time = pygame.time.get_ticks() - start_ticks
-
-        win.fill(GREEN)
-        title_text = font_large.render("Game over", True, BLACK)
-        press_key = font_medium.render("Press SPACE to try again", True, BLACK)
+    # Custom drawing for level complete screen
+    def draw_level_complete():
+        # Simple black title
+        title = font_large.render("Level Complete", True, BLACK)
+        win.blit(title, (WIDTH//2 - title.get_width()//2, HEIGHT//2 - 200))
         
-        win.blit(title_text, title_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50)))
-        win.blit(press_key, press_key.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 50)))
-        
-        pygame.display.flip()
 
-        if elapsed_time > 1000:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                    pygame.quit()
-                    sys.exit()
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE:
-                        running = False
-                        Game(current_level)                 
+    # Create menu instance
+    level_complete_menu = BaseMenu(
+        win,
+        font_medium,
+        font_large,
+        "",  # Empty title since we're drawing custom
+        [continue_button, menu_button],
+        use_gradient=True,
+        extra_draw=draw_level_complete
+    )
 
-
-
-def Menu():
+    # Main loop with keyboard support
     running = True
-    play_button = Button("Play", WIDTH // 2 - 100, HEIGHT // 2 - 100, 200, 60)
-    level_button = Button("Levels", WIDTH // 2 - 100, HEIGHT // 2 , 200, 60)
-    skin_button = Button("Skins", WIDTH // 2 - 100, HEIGHT // 2 + 100, 200, 60)
-    quit_button = Button("Quit", WIDTH // 2 - 100, HEIGHT // 2 + 200, 200, 60)
-    
-    
-    clock = pygame.time.Clock()  # Create a clock to control frame rate
+    clock = pygame.time.Clock()
     while running:
-        win.fill(WHITE)  # Fill the screen with white color
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False  # Exit the loop if the window is closed
                 pygame.quit()
                 sys.exit()
+            
+            # Handle mouse events
+            level_complete_menu.handle_events(event)
+            
+            # Keyboard support
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    continue_action()
+                    running = False
+                elif event.key == pygame.K_ESCAPE:
+                    menu_action()
+                    running = False
+        
+        # Draw everything
+        level_complete_menu.draw()
+        pygame.display.flip()
+        clock.tick(60)
+    
+ 
+def Over(current_level):
+    def retry_action():
+        Game(current_level)
+    
+    def menu_action():
+        Menu()
 
-            # Handle mouse click events for buttons
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = event.pos  # Get mouse position
-                if play_button.is_clicked(mouse_pos):
-                    Game(1)  # Call Game function when "Play" is clicked
-                    running = False  # Exit the menu loop
-                elif quit_button.is_clicked(mouse_pos):
-                    running = False  # Exit the loop if "Quit" is clicked
-                    pygame.quit()
-                    sys.exit()
-                elif level_button.is_clicked(mouse_pos):
-                    running = False  
-                    Level_select()
-                elif skin_button.is_clicked(mouse_pos):
-                    running = False  
-                    Skin_menu()
+    # Create buttons
+    retry_button = Button(
+        "Try Again", 
+        WIDTH//2 - 100, HEIGHT//2 - 30, 
+        200, 60, 
+        (139, 69, 19),  # Brown
+        retry_action,
+        (255, 255, 255)  # White text
+    )
+    
+    menu_button = Button(
+        "Main Menu",
+        WIDTH//2 - 100, HEIGHT//2 + 170,
+        200, 60,
+        (139, 69, 19),
+        menu_action,
+        (255, 255, 255)
+    )
 
-        # Draw buttons
-        play_button.draw(win)  # Ensure you draw the play button
-        quit_button.draw(win)  # Ensure you draw the quit button
-        level_button.draw(win)
-        skin_button.draw(win)
-
+    # Custom drawing for game over screen
+    def draw_game_over():
+        # Simple black title centered
+        title = font_large.render("Game Over", True, BLACK)
+        win.blit(title, (WIDTH//2 - title.get_width()//2 - 0, HEIGHT//2 - 200))
         
 
-        # Limit the frame rate to avoid flickering and to make sure the menu is smooth
-        clock.tick(60)  # Limiting to 60 frames per second
+
+    # Create menu instance
+    game_over_menu = BaseMenu(
+        win,
+        font_medium,
+        font_large,
+        "",  # Empty title since we're drawing custom
+        [retry_button, menu_button],
+        use_gradient=True,
+        extra_draw=draw_game_over
+    )
+
+    # Main loop with keyboard support
+    running = True
+    clock = pygame.time.Clock()
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            # Handle mouse events
+            game_over_menu.handle_events(event)
+            
+            # Keyboard support
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    retry_action()
+                    running = False
+                elif event.key == pygame.K_ESCAPE:
+                    menu_action()
+                    running = False
+                elif event.key == pygame.K_m:  # Alternate key for menu
+                    menu_action()
+                    running = False
+        
+        # Draw everything
+        game_over_menu.draw()
+        pygame.display.flip()
+        clock.tick(60)           
 
 
-       
-        menu_text = font_large.render("Mushroom Collector", True, BLACK)
-        win.blit(menu_text, menu_text.get_rect(center=(WIDTH // 2, 100)))
-        pygame.display.flip()  # Update the display once per loop
+class Button:
+    def __init__(self, text, x, y, width, height, color=GRAY, action=None, text_color=BLACK):
+        self.text = text
+        self.rect = pygame.Rect(x, y, width, height)
+        self.color = color
+        self.action = action
+        self.text_color = text_color
+        
+    def draw(self, screen):
+        pygame.draw.rect(screen, self.color, self.rect)
+        pygame.draw.rect(screen, BLACK, self.rect, 2)  # Add border
+        
+        text_surface = font_medium.render(self.text, True, self.text_color)
+        text_rect = text_surface.get_rect(center=self.rect.center)
+        screen.blit(text_surface, text_rect)
+
+    def is_clicked(self, pos):
+        return self.rect.collidepoint(pos)
+
+
+def draw_forest_gradient(surface, gradient_colors, rect=None):
+    """Draw a vertical forest gradient background"""
+    if rect is None:
+        rect = surface.get_rect()
+    
+    height = rect.height
+    segment_height = height // (len(gradient_colors) - 1)
+    
+    for i, color in enumerate(gradient_colors):
+        # Calculate y positions for each gradient segment
+        y_start = i * segment_height
+        y_end = (i + 1) * segment_height
+        
+        # For the last color, extend to bottom of screen
+        if i == len(gradient_colors) - 1:
+            y_end = height
+        
+        pygame.draw.rect(surface, color, (rect.x, y_start, rect.width, y_end - y_start))
+
+
+class BaseMenu:
+    def __init__(self, screen, font_medium, font_large, title_text, buttons,
+                 background_color=None, extra_draw=None, use_gradient=True,
+                 gradient_colors=None):
+        """
+        Initialize a menu with consistent styling
+        
+        Parameters:
+        - screen: The pygame surface to draw on
+        - font_medium: Medium font for buttons
+        - font_large: Large font for title
+        - title_text: Text to display (empty string for no title)
+        - buttons: List of Button objects
+        - background_color: Solid color if not using gradient
+        - extra_draw: Function for additional drawing
+        - use_gradient: Whether to use gradient background
+        - gradient_colors: Custom gradient colors if needed
+        """
+        self.screen = screen
+        self.font_medium = font_medium
+        self.font_large = font_large
+        self.title_text = title_text
+        self.buttons = buttons
+        self.background_color = background_color
+        self.extra_draw = extra_draw
+        self.use_gradient = use_gradient
+        self.gradient_colors = gradient_colors or FOREST_GRADIENT
+
+    def draw(self):
+        """Draw the menu with all elements"""
+        # Draw background
+        if self.use_gradient:
+            draw_forest_gradient(self.screen, self.gradient_colors)
+        elif self.background_color:
+            self.screen.fill(self.background_color)
+        
+        # Draw additional decorations if provided
+        if self.extra_draw:
+            self.extra_draw()
+        
+        # Draw all buttons
+        for button in self.buttons:
+            button.draw(self.screen)
+        
+        # Draw title only if text was provided
+        if self.title_text:
+            self._draw_title()
+
+    def _draw_title(self):
+        """Internal method to draw the title with styling"""
+        # Create text surface
+        title_font = pygame.font.SysFont("Arial", 72, bold=True)
+        title = title_font.render(self.title_text, True, (255, 255, 255))  # White
+        
+        # Create background panel
+        panel_width = title.get_width() + 40
+        panel_height = title.get_height() + 20
+        panel = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
+        
+        # Draw panel with styled border
+        pygame.draw.rect(panel, (0, 0, 0, 180), (0, 0, panel_width, panel_height), 
+                        border_radius=10)
+        pygame.draw.rect(panel, (139, 69, 19, 220), (0, 0, panel_width, panel_height), 
+                        width=3, border_radius=10)
+        
+        # Position and draw elements
+        panel_rect = panel.get_rect(center=(WIDTH//2, 100))
+        title_rect = title.get_rect(center=panel_rect.center)
+        
+        self.screen.blit(panel, panel_rect)
+        self.screen.blit(title, title_rect)
+
+    def handle_events(self, event):
+        """Handle menu events"""
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_pos = event.pos
+            for button in self.buttons:
+                if button.is_clicked(mouse_pos):
+                    button.action()
+
+    def run(self):
+        """Run the menu loop"""
+        running = True
+        clock = pygame.time.Clock()
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                self.handle_events(event)
+
+            self.draw()
+            pygame.display.flip()
+            clock.tick(60)
+
+def Menu():
+    def play_action():
+        Game(1)
+    def quit_action():
+        pygame.quit()
+        sys.exit()
+    def level_action():
+        Level_select()
+    def skin_action():
+        Skin_menu()
+
+    # Create buttons with more forest-appropriate colors
+    button_color = (139, 69, 19)  # Brown color for buttons
+    text_color = (255, 255, 255)  # White text
+    
+    play_button = Button("Play", WIDTH//2-100, HEIGHT//2-100, 200, 60, button_color, play_action, text_color)
+    level_button = Button("Levels", WIDTH//2-100, HEIGHT//2, 200, 60, button_color, level_action, text_color)
+    skin_button = Button("Skins", WIDTH//2-100, HEIGHT//2+100, 200, 60, button_color, skin_action, text_color)
+    quit_button = Button("Quit", WIDTH//2-100, HEIGHT//2+200, 200, 60, button_color, quit_action, text_color)
+
+    # Add some decorative elements function
+    def draw_forest_decorations():
+        # Draw some simple trees in the background
+        tree_color = (101, 67, 33)  # Brown trunk
+        leaf_color = (34, 139, 34)  # Green leaves
+        
+        # Left side trees
+        pygame.draw.rect(win, tree_color, (50, 300, 20, 100))  # Trunk
+        pygame.draw.polygon(win, leaf_color, [
+            (30, 300), (90, 300), (60, 250)
+        ])
+        
+        # Right side trees
+        pygame.draw.rect(win, tree_color, (730, 400, 20, 100))
+        pygame.draw.polygon(win, leaf_color, [
+            (710, 400), (770, 400), (740, 350)
+        ])
+        
+
+
+    # Create menu with gradient and decorations
+    menu = BaseMenu(
+        win, 
+        font_medium, 
+        font_large, 
+        "Mushroom Collector", 
+        [play_button, level_button, skin_button, quit_button],
+        use_gradient=True,
+        extra_draw=draw_forest_decorations
+    )
+    menu.run()
+
+def Skin_menu():
+    global current_skin
+
+    def find_current_pos(skin, skins):
+        for k, v in skins.items():
+            if v["skin"] == skin:
+                return k
+        return 1
+
+    def get_next_pos(pos, skins, forward=True):
+        while True:
+            pos = pos + 1 if forward else pos - 1
+            if pos > len(skins):
+                pos = 1
+            if pos < 1:
+                pos = len(skins)
+            if skins[pos]["unlocked"]:
+                return pos
+
+    pos = find_current_pos(current_skin, My_skins)
+    assets = Assets(LEVELS[1])
+
+    def previous_skin_action():
+        nonlocal pos
+        pos = get_next_pos(pos, My_skins, forward=False)
+
+    def next_skin_action():
+        nonlocal pos
+        pos = get_next_pos(pos, My_skins, forward=True)
+
+    def back_action():
+        Menu()
+
+    prev_button = Button("Previous", WIDTH // 2 - 350, HEIGHT // 2 + 150, 150, 100, GRAY, previous_skin_action)
+    next_button = Button("Next", WIDTH // 2 + 200, HEIGHT // 2 + 150, 150, 100, GRAY, next_skin_action)
+    back_button = Button("Back", WIDTH // 2 - 75, HEIGHT // 2 + 150, 150, 100, GRAY, back_action)
+
+    def draw_preview():
+        global current_skin
+        if My_skins[pos]["unlocked"]:
+            current_skin = My_skins[pos]["skin"]
+        else:
+            current_skin = "none"
+
+        assets.player.x = WIDTH // 2 - assets.player_size // 2
+        assets.player.y = HEIGHT // 2 - assets.player_size // 2
+        assets.Player()
+
+    skin_menu = BaseMenu(
+        win, font_medium, font_large, "Select your skin",
+        [prev_button, next_button, back_button],
+        background_color=GREEN,
+        extra_draw=draw_preview
+    )
+    skin_menu.run()
 
 
 def Level_select():
+    def level_action(num):
+        Game(num)
+    
+    def back_action():
+        Menu()
+
+    # Forest-themed colors
+    button_color = (139, 69, 19)  # Brown
+    text_color = (255, 255, 255)  # White
+
+    # Buttons with consistent forest styling
+    L1_button = Button("Level 1", WIDTH//2-100, HEIGHT//2-200, 200, 60, 
+                      button_color, lambda: level_action(1), text_color)
+    L2_button = Button("Level 2", WIDTH//2-100, HEIGHT//2-100, 200, 60,
+                      button_color, lambda: level_action(2), text_color)
+    L3_button = Button("Level 3", WIDTH//2-100, HEIGHT//2, 200, 60,
+                      button_color, lambda: level_action(3), text_color)
+    L4_button = Button("Level 4", WIDTH//2-100, HEIGHT//2+100, 200, 60,
+                      button_color, lambda: level_action(4), text_color)
+    Back_button = Button("Back", WIDTH//2-100, HEIGHT//2+200, 200, 60,
+                        button_color, back_action, text_color)
+
+    # Create menu instance
+    level_menu = BaseMenu(
+        win,
+        font_medium,
+        font_large,
+        "",  # Empty title string
+        [L1_button, L2_button, L3_button, L4_button, Back_button],
+        use_gradient=True,
+    )
+
+    # Key to level mapping
+    key_mapping = {
+        pygame.K_1: 1,
+        pygame.K_2: 2,
+        pygame.K_3: 3,
+        pygame.K_4: 4,
+        pygame.K_5: 5,
+        pygame.K_6: 6,
+        pygame.K_7: 7,
+        pygame.K_8: 8,
+        pygame.K_9: 9,
+    }
+
+    # Main loop
     running = True
-    L1_button = Button("Level 1", WIDTH // 2 - 100, HEIGHT // 2 - 250, 200, 60)
-    L2_button = Button("Level 2", WIDTH // 2 - 100, HEIGHT // 2 - 150 , 200, 60)
-    L3_button = Button("Level 3", WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 60)
-    L4_button = Button("Level 4", WIDTH // 2 - 100, HEIGHT // 2 + 50, 200, 60)
-    Back_button = Button("Back", WIDTH // 2 - 100, HEIGHT // 2 + 150, 200, 60)
-    
-    
-    clock = pygame.time.Clock()  # Create a clock to control frame rate
+    clock = pygame.time.Clock()
     while running:
-        win.fill(WHITE)  # Fill the screen with white color
-
         for event in pygame.event.get():
-
-
-            keys_to_check = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8]
-            keys = pygame.key.get_pressed()
-            for key in keys_to_check:
-                if keys[key]:
-                    Game(key - pygame.K_1 + 1)
-
-
             if event.type == pygame.QUIT:
-                running = False  
                 pygame.quit()
                 sys.exit()
-
-
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = event.pos  # Get mouse position
-                if  L1_button.is_clicked(mouse_pos):
-                    Game(1)  # Call Game function when "Play" is clicked
-                    running = False  # Exit the menu loop
-                elif L2_button.is_clicked(mouse_pos):
-                    Game(2)
-                    running = False  # Exit the loop if "Quit" is clicked
-                elif L3_button.is_clicked(mouse_pos):
-                    Game(3)
-                    running = False  # Exit the loop if "Quit" is clicked
-                elif L4_button.is_clicked(mouse_pos):
-                    Game(4)
-                    running = False  # Exit the loop if "Quit" is clicked
-                elif Back_button.is_clicked(mouse_pos):
-                    Menu()
-                    running = False  # Exit the loop if "Quit" is clicked
-
-
-        # Draw buttons
-        L1_button.draw(win)  # Ensure you draw the play button
-        L2_button.draw(win)  # Ensure you draw the quit button
-        L3_button.draw(win)
-        L4_button.draw(win)
-        Back_button.draw(win)
-
+            
+            # Handle mouse events
+            level_menu.handle_events(event)
+            
+            # Handle keyboard events
+            if event.type == pygame.KEYDOWN:
+                if event.key in key_mapping:
+                    level_action(key_mapping[event.key])
+                    running = False
+                elif event.key == pygame.K_ESCAPE:
+                    back_action()
+                    running = False
         
-
-        # Limit the frame rate to avoid flickering and to make sure the menu is smooth
-        clock.tick(60)  # Limiting to 60 frames per second
-
-
-       
-        #menu_text = font_large.render("Mushroom Collector", True, BLACK)
-        #win.blit(menu_text, menu_text.get_rect(center=(WIDTH // 2, 100)))
-        pygame.display.flip()  # Update the display once per loop
-
+        # Draw everything
+        level_menu.draw()
+        pygame.display.flip()
+        clock.tick(60)
 
 
 def Victory():
-    running = True
-    play_button = Button("Play again", WIDTH // 2 - 250, HEIGHT // 2 - 45 , 200, 150)
-    quit_button = Button("Quit", WIDTH // 2 + 50, HEIGHT // 2 - 45 , 200, 150)
+    def play_again_action():
+        Game(1)
     
-    clock = pygame.time.Clock()  # Create a clock to control frame rate
-    while running:
-        win.fill(GREEN)  # Fill the screen with white color
+    def quit_action():
+        pygame.quit()
+        sys.exit()
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False  # Exit the loop if the window is closed
-                pygame.quit()
-                sys.exit()
+    # Create buttons with consistent styling
+    play_button = Button(
+        "Play Again", 
+        WIDTH//2 - 100, HEIGHT//2 - 30, 
+        200, 60, 
+        (139, 69, 19),  # Brown
+        play_again_action,
+        (255, 255, 255)  # White text
+    )
+    
+    quit_button = Button(
+        "Quit Game",
+        WIDTH//2 - 100, HEIGHT//2 + 170,
+        200, 60,
+        (139, 69, 19),
+        quit_action,
+        (255, 255, 255)
+    )
 
-            # Handle mouse click events for buttons
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = event.pos  # Get mouse position
-                if play_button.is_clicked(mouse_pos):
-                    state = Game(1)  
-                    running = False  
-                elif quit_button.is_clicked(mouse_pos):
-                    running = False  # Exit the loop if "Quit" is clicked
-                    pygame.quit()
-                    sys.exit()
-
-        # Draw buttons
-        play_button.draw(win)  # Ensure you draw the play button
-        quit_button.draw(win)  # Ensure you draw the quit button
-
+    # Custom drawing for victory screen
+    def draw_victory():
+        # Title text
+        title = font_large.render("YOU WON!", True, BLACK)
+        win.blit(title, (WIDTH//2 - title.get_width()//2, 100))
         
 
-        # Limit the frame rate to avoid flickering and to make sure the menu is smooth
-        clock.tick(60)  # Limiting to 60 frames per second
 
+    # Create menu instance
+    victory_menu = BaseMenu(
+        win,
+        font_medium,
+        font_large,
+        "",  # Empty title since we're drawing custom
+        [play_button, quit_button],
+        use_gradient=True,
+        extra_draw=draw_victory
+    )
 
-       
-        menu_text = font_large.render("YOU WON", True, BLACK)
-        win.blit(menu_text, menu_text.get_rect(center=(WIDTH // 2, 100)))
-        pygame.display.flip()  # Update the display once per loop
+    # Main loop with keyboard support
+    running = True
+    clock = pygame.time.Clock()
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                quit_action()
+            
+            # Handle mouse events
+            victory_menu.handle_events(event)
+            
+            # Keyboard support
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    play_again_action()
+                    running = False
+                elif event.key == pygame.K_ESCAPE:
+                    quit_action()
+                elif event.key == pygame.K_RETURN:
+                    play_again_action()
+                    running = False
+        
+        # Draw everything
+        victory_menu.draw()
+        pygame.display.flip()
+        clock.tick(60)
 
 
 Menu()
+#Shop(1)
 
