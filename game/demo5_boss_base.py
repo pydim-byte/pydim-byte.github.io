@@ -333,6 +333,8 @@ class Assets:
                     self.super_state = True
                     self.super_timer = pygame.time.get_ticks()  # Start timer
 
+
+
             # Prevent mushrooms from going out of bounds (considering mushroom size)
             if enemy.left < 0:  # Left boundary
                 enemy.left = 0
@@ -849,7 +851,9 @@ def Game(level_num):
                 Over(level_num)
 
         if enemy and player.colliderect(enemy):
-            if not player_invincible:
+            if assets.super_state:
+                e -= 1
+            elif not assets.super_state and not player_invincible:
                 p -= 1
                 player_invincible = True
                 invincible_timer = pygame.time.get_ticks()
@@ -857,6 +861,10 @@ def Game(level_num):
         if p <= 0:
             pass
             #Over(9)
+
+        if e <= 0:
+            pass
+            #Victory()
 
         # Check for key and chest collision only if both exist
         if assets.key and assets.chest:  # Check if both key and chest exist
