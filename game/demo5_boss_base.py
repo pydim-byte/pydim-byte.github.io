@@ -136,6 +136,8 @@ class Assets:
         self.phase_start = pygame.time.get_ticks()
         self.boss_cooldown = 60
         self.not_super = True
+        self.super_state = False  # Add this line
+        self.super_timer = 0      # Timer for super state duration
         self.projectiles = []
 
         self.last_spawn_time = 0  # Time of the last mushroom spawn (in ms)
@@ -327,9 +329,9 @@ class Assets:
             for m in self.super_m[:]:
                 if player.colliderect(m):
                     self.super_m.remove(m)
-                    pygame.draw.circle(win, RED, player.center, self.player_size // 2)
-
-
+                    #MODE = GOLD
+                    self.super_state = True
+                    self.super_timer = pygame.time.get_ticks()  # Start timer
 
             # Prevent mushrooms from going out of bounds (considering mushroom size)
             if enemy.left < 0:  # Left boundary
@@ -369,18 +371,23 @@ class Assets:
         self.Player_skin()
 
         # Drawing Player
-        skins = self.Player_skin()
+        # Handle super state timeout (e.g., 10 seconds)
+        if self.super_state and pygame.time.get_ticks() - self.super_timer > 10000:
+            self.super_state = False
+
+        # Drawing Player - use GOLD color if in super state
+        current_color = GOLD if self.super_state else MODE
+        pygame.draw.circle(win, current_color, player.center, self.player_size // 2)
+        pygame.draw.circle(win, BLACK, (player.centerx - 10, player.centery - 10), 5)
+        pygame.draw.circle(win, BLACK, (player.centerx + 10, player.centery - 10), 5)
+        pygame.draw.arc(win, BLACK, (player.centerx - 10, player.centery - 5, 20, 15), 3.14, 0, 2)
+        
         draw_func = skins.get(self.skin_type)
         if draw_func:
-            pygame.draw.circle(win, MODE, player.center, self.player_size // 2)
-            pygame.draw.circle(win, BLACK, (player.centerx - 10, player.centery - 10), 5)
-            pygame.draw.circle(win, BLACK, (player.centerx + 10, player.centery - 10), 5)
-            pygame.draw.arc(win, BLACK, (player.centerx - 10, player.centery - 5, 20, 15), 3.14, 0, 2)
             draw_func()
 
-
-
         return self.player
+
 
     def Player_skin(self):
         player = self.player
