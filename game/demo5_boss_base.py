@@ -70,6 +70,7 @@ Levels_completed = {}
 
 p = 3
 e = 3
+MODE = WHITE
 
 LEVELS = {
     1: {"level_color": GREEN, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": False, "with_chest": False, "sky_mushrooms": False, "with_flood": False, "vacuum": False},
@@ -88,6 +89,7 @@ max_level = len(LEVELS)
 
 class Assets:
     def __init__(self, config):
+        global MODE
         # Initialize with the config data first
         self.with_chest = config.get("with_chest", False)  # First, initialize with_chest from config
 
@@ -322,6 +324,11 @@ class Assets:
                 pygame.draw.rect(win, BROWN, (m.centerx - 3, m.bottom - 10, 6, 10))  # stem
                 pygame.draw.ellipse(win, GOLD, (m.x, m.y, self.mushroom_radius * 2, self.mushroom_radius))  # cap
                     
+            for m in self.super_m[:]:
+                if player.colliderect(m):
+                    self.super_m.remove(m)
+                    pygame.draw.circle(win, RED, player.center, self.player_size // 2)
+
 
 
             # Prevent mushrooms from going out of bounds (considering mushroom size)
@@ -365,7 +372,7 @@ class Assets:
         skins = self.Player_skin()
         draw_func = skins.get(self.skin_type)
         if draw_func:
-            pygame.draw.circle(win, WHITE, player.center, self.player_size // 2)
+            pygame.draw.circle(win, MODE, player.center, self.player_size // 2)
             pygame.draw.circle(win, BLACK, (player.centerx - 10, player.centery - 10), 5)
             pygame.draw.circle(win, BLACK, (player.centerx + 10, player.centery - 10), 5)
             pygame.draw.arc(win, BLACK, (player.centerx - 10, player.centery - 5, 20, 15), 3.14, 0, 2)

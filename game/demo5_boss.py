@@ -68,8 +68,6 @@ My_skins = {
 
 Levels_completed = {}
 
-p = 3
-e = 3
 
 LEVELS = {
     1: {"level_color": GREEN, "with_spikes": False, "with_bad_mushrooms": False, "moving_mushrooms": False, "with_enemy": False, "with_chest": False, "sky_mushrooms": False, "with_flood": False, "vacuum": False},
@@ -117,7 +115,6 @@ class Assets:
         self.bad_mushrooms = []
         self.spike = []
         self.spike_rects = []
-        self.super_m = []
         self.safe_distance = 60
         self.spikes_generated = False
         self.bad_mushrooms_generated = False
@@ -130,11 +127,6 @@ class Assets:
         self.with_flood = config.get("with_flood", False)
         self.vacuum = config.get("vacuum", False)
 
-        self.boss_start_time = pygame.time.get_ticks()
-        self.phase_start = pygame.time.get_ticks()
-        self.boss_cooldown = 60
-        self.not_super = True
-        self.projectiles = []
 
         self.last_spawn_time = 0  # Time of the last mushroom spawn (in ms)
         self.spawn_interval = 500  # 2 seconds in milliseconds
@@ -184,162 +176,85 @@ class Assets:
             return None
 
     def Enemy(self):
+        if not self.with_enemy:
+            return None
+
+        # Initialize boss stats on first call
+        if not hasattr(self, "boss_start_time"):
+            self.boss_start_time = pygame.time.get_ticks()  # When fight started
+            self.boss_phase = 1
+            self.boss_cooldown = 0
+            self.projectiles = []
+
+            # Boss size
+            self.enemy.width = self.player_size * 3
+            self.enemy.height = self.player_size * 3
+
         enemy = self.enemy
-        with_enemy = self.with_enemy
-        enemy_speed = 8
 
+        # === TIME-BASED PHASES ===
+        elapsed = (pygame.time.get_ticks() - self.boss_start_time) / 1000  # seconds
+        if elapsed < 10:
+            self.boss_phase = 1  # First 10s
+        elif elapsed < 20:
+            self.boss_phase = 2  # Next 10s
+        else:
+            self.boss_phase = 3  # After 20s
+
+        # === MOVEMENT PATTERN ===
         player = self.player
-        player_invincible = False
-        invincible_timer = 0
-        INVINCIBLE_TIME = 1000  # milliseconds (1 second of invincibility)
+        dx = player.centerx - enemy.centerx
+        dy = player.centery - enemy.centery
+        dist = (dx ** 2 + dy ** 2) ** 0.5 + 0.1
 
-        enemy_size = self.player_size
-        global p
-        global e
+        if self.boss_phase == 1:
+            speed = 2
+        elif self.boss_phase == 2:
+            speed = 3
+        else:
+            speed = 5
 
-        center_x = WIDTH / 2
-        center_y = HEIGHT / 2 - 20
+        enemy.centerx += dx / dist * speed
+        enemy.centery += dy / dist * speed
 
-        if with_enemy:
-            if True:
-                pygame.draw.ellipse(win, RED, (enemy.centerx - 30, enemy.centery - 40, 60, 50))
-                pygame.draw.circle(win, ORANGE, enemy.center, self.player_size // 2)
+        if enemy.y < 40:
+            enemy.y = 40
 
-                pygame.draw.circle(win, GOLD, (enemy.centerx - 22, enemy.centery - 18), 6) #mushroom spot
-                pygame.draw.circle(win, GOLD, (enemy.centerx + 24, enemy.centery - 12), 5) #mushroom spot
-                pygame.draw.circle(win, GOLD, (enemy.centerx - 14, enemy.centery - 32), 4) #mushroom spot
-                pygame.draw.circle(win, GOLD, (enemy.centerx - 4, enemy.centery - 26), 5) #mushroom spot
-                pygame.draw.circle(win, GOLD, (enemy.centerx + 13, enemy.centery - 28), 6) #mushroom spot
-                
-                pygame.draw.circle(win, BLACK, (enemy.centerx - 10, enemy.centery - 10), 5)
-                pygame.draw.circle(win, BLACK, (enemy.centerx + 10, enemy.centery - 10), 5)
-                pygame.draw.arc(win, BLACK, (enemy.centerx - 10, enemy.centery + 0, 20, 15), 0, 3.14, 2)
-
-
-            # Total cycle duration in seconds
-            cycle_duration = 21  # 10 + 10 + 1
-            chase_duration = 10
-            run_duration = 10
-            pause_duration = 1
-            shooting = False
-            super = False
-            
-
-            elapsed = (pygame.time.get_ticks() - self.boss_start_time) / 1000
-            cycle_time = elapsed % cycle_duration
-
-            if cycle_time < chase_duration:
-                shooting = False
-                self.boss_cooldown = 60
-                # --- Chase phase ---
-                x_dist = enemy.centerx - player.centerx
-                y_dist = enemy.centery - player.centery
-                dist = (x_dist ** 2 + y_dist ** 2) ** 0.5 + 1
-                x_vel = x_dist / dist * enemy_speed
-                y_vel = y_dist / dist * enemy_speed
-
-                enemy.centerx -= x_vel
-                enemy.centery -= y_vel
-
-            elif cycle_time < chase_duration + run_duration:
-                shooting = True
-                super = True
-                # Run to center
-                x2 = center_x - enemy.centerx
-                y2 = center_y - enemy.centery
-                dist_c = (x2**2 + y2**2)**0.5
-
-                if dist_c > 5:  # far from center
-                    xc_vel = x2 / dist_c * enemy_speed
-                    yc_vel = y2 / dist_c * enemy_speed
-                    enemy.centerx = round(enemy.centerx + xc_vel)
-                    enemy.centery = round(enemy.centery + yc_vel)
-                else:  # close enough, snap to center
-                    enemy.centerx = center_x
-                    enemy.centery = center_y
-            else:
-                # --- Pause phase ---
-                pass  # do nothing, enemy stays in place
-
-
-
-            dx = player.centerx - enemy.centerx
-            dy = player.centery - enemy.centery
-            dist = (dx ** 2 + dy ** 2) ** 0.5 + 0.1
-
+        # === ATTACK PATTERNS ===
+        self.boss_cooldown -= 1
+        if self.boss_phase >= 2 and self.boss_cooldown <= 0:
             proj = {
                 "rect": pygame.Rect(enemy.centerx, enemy.centery, 10, 10),
                 "vx": dx / dist * 6,
                 "vy": dy / dist * 6
             }
+            self.projectiles.append(proj)
+            self.boss_cooldown = 60  # 1 shot/sec
 
-            for proj in self.projectiles[:]:
-                proj["rect"].x += proj["vx"]
-                proj["rect"].y += proj["vy"]
-                pygame.draw.circle(win, RED, proj["rect"].center, 10)
-                if not win.get_rect().colliderect(proj["rect"]):
-                    self.projectiles.remove(proj)
+        for proj in self.projectiles[:]:
+            proj["rect"].x += proj["vx"]
+            proj["rect"].y += proj["vy"]
+            pygame.draw.circle(win, RED, proj["rect"].center, 5)
+            if not win.get_rect().contains(proj["rect"]):
+                self.projectiles.remove(proj)
 
-            if not player_invincible:
-                for proj in self.projectiles[:]:
-                    if player.colliderect(proj["rect"]):
-                        if not player_invincible:
-                            p -= 1  # reduce health
-                            player_invincible = True
-                            invincible_timer = pygame.time.get_ticks()
-                        # Remove or ignore this projectile after collision
-                        self.projectiles.remove(proj)
-                        break  # stop checking other projectiles this frame
+        # === DRAW THE BOSS ===
+        pygame.draw.ellipse(win, RED, enemy)
+        pygame.draw.circle(win, ORANGE, enemy.center, enemy.width // 2)
+        pygame.draw.circle(win, BLACK, (enemy.centerx - 20, enemy.centery - 20), 8)
+        pygame.draw.circle(win, BLACK, (enemy.centerx + 20, enemy.centery - 20), 8)
 
-            if shooting:
-                self.boss_cooldown -= 1
-                if self.boss_cooldown <= 0:
-                    num_shots = 20
-                    spread = 0.6  # radians
-                    angle_to_player = math.atan2(dy, dx)
-                    for i in range(num_shots):
-                        angle = angle_to_player + (i - num_shots//2) * spread
-                        vx = math.cos(angle) * 6
-                        vy = math.sin(angle) * 6
-                        self.projectiles.append({
-                            "rect": pygame.Rect(enemy.centerx, enemy.centery, 10, 10),
-                            "vx": vx,
-                            "vy": vy
-                        })
-                    self.boss_cooldown = 40  # 1 burst/sec
+        # === TIMER BAR ===
+        total_fight_time = 30  # fight length in seconds
+        remaining_time = max(0, total_fight_time - elapsed)
+        bar_width = enemy.width
+        time_ratio = remaining_time / total_fight_time
+        pygame.draw.rect(win, BLACK, (enemy.x, enemy.y - 20, bar_width, 10))
+        pygame.draw.rect(win, (255, 255, 0), (enemy.x, enemy.y - 20, bar_width * time_ratio, 10))
 
-            if super and self.not_super:
-                self.not_super = False
-                if self.rect_coords:  # Check if there are still available positions
-                    random_rects = random.sample(self.rect_coords, 1)
-                    rand_x, rand_y = random_rects[0]
-                    x, y = rand_x, rand_y
-                    rect = pygame.Rect(x, y, self.mushroom_radius * 2, self.mushroom_radius * 2)
-                    self.super_m.append(rect)
+        return enemy
 
 
-            for m in self.super_m:
-                pygame.draw.rect(win, BROWN, (m.centerx - 3, m.bottom - 10, 6, 10))  # stem
-                pygame.draw.ellipse(win, GOLD, (m.x, m.y, self.mushroom_radius * 2, self.mushroom_radius))  # cap
-                    
-
-
-            # Prevent mushrooms from going out of bounds (considering mushroom size)
-            if enemy.left < 0:  # Left boundary
-                enemy.left = 0
-            elif enemy.right > win.get_width():  # Right boundary
-                enemy.right = win.get_width()
-
-            if enemy.top < 40:  # Upper boundary (prevent going above 40 pixels)
-                enemy.top = 40
-            elif enemy.bottom > win.get_height():  # Bottom boundary
-                enemy.bottom = win.get_height()
-
-
-
-            return enemy
-        else:
-            return None
 
 
     def Merchant(self):
@@ -511,7 +426,7 @@ class Assets:
         mushroom_time = pygame.time.get_ticks()
 
         # If mushrooms should spawn immediately, generate them
-        if not self.with_chest and not self.with_enemy and self.mushrooms_spawned < mushroom_count: # Only spawn until we reach mushroom_count
+        if not self.with_chest and self.mushrooms_spawned < mushroom_count:  # Only spawn until we reach mushroom_count
             if self.sky_mushrooms:
                 # For sky mushrooms, spawn one by one with a delay
                 if len(self.mushrooms) == 0:  # First mushroom needs to wait for the delay
@@ -729,7 +644,20 @@ class Assets:
                     new_mushroom = pygame.Rect(rand_pos[0], rand_pos[1], self.mushroom_radius * 2, self.mushroom_radius * 2)
                     self.mushrooms.append(new_mushroom)  # Add it to the list of mushrooms
                     self.rect_coords.remove(rand_pos)  # Remove the position from available coordinates
-  
+
+    def Release_mushroom_in_chest(self):
+        """Handle mushroom release inside the chest after key-chest collision."""
+        if self.chest and not self.mushroom_inside_chest:
+            # Create a new mushroom inside the chest area
+            self.mushroom_inside_chest = pygame.Rect(self.chest.centerx - self.mushroom_radius, self.chest.centery - self.mushroom_radius, self.mushroom_radius * 2, self.mushroom_radius * 2)
+
+    def Collect_mushroom_from_chest(self):
+        """Handle player collecting mushroom from the chest."""
+        if self.mushroom_inside_chest and self.player.colliderect(self.mushroom_inside_chest):
+            self.mushroom_inside_chest = None  # Remove the mushroom once collected
+            return True
+        return False
+    
     def handle_mushroom_collection(self, player):
         for m in self.mushrooms[:]:  # Iterating over a copy of the list
             if player.colliderect(m):
@@ -738,52 +666,11 @@ class Assets:
         return False
 
 
-def draw_hud(win, font, level_num, score, collected, config, player_health=3, boss_health=3):
-    TEXT_COLOR = (255, 255, 255)
-    LINE_COLOR = (0, 0, 0)
-
-    pygame.draw.rect(win, LINE_COLOR, (0, 0, WIDTH, 40))
-    with_enemy = config.get("with_enemy", False)
-
-    if with_enemy:
-        # Text
-        level_text = font.render(f"Player: ", True, TEXT_COLOR)
-        goal_text = font.render(f"GOAL: {score}/20", True, TEXT_COLOR)
-        collected_text = font.render(f"Boss: ", True, TEXT_COLOR)
-        win.blit(level_text, (20, 10))
-        win.blit(goal_text, (330, 10))
-        win.blit(collected_text, (615, 10))
-
-        # Player hearts
-        for i in range(player_health):
-            pygame.draw.circle(win, RED, (120 + i*35, 20), 15)
-
-        # Boss hearts
-        for i in range(boss_health):
-            pygame.draw.circle(win, RED, (700 + i*35, 20), 15)
-
-    else:
-        # Normal HUD
-        level_text = font.render(f"LEVEL: {level_num}", True, TEXT_COLOR)
-        goal_text = font.render(f"GOAL: {score}/{20}", True, TEXT_COLOR)
-        collected_text = font.render(f"MUSHROOMS COLLECTED: {collected}", True, TEXT_COLOR)
-        win.blit(level_text, (20, 10))
-        win.blit(goal_text, (200, 10))
-        win.blit(collected_text, (400, 10))
-
-
 def Game(level_num):
     config = LEVELS[level_num]
     assets = Assets(config)
     running = True
     score = 0
-    global p
-    global e 
-
-    player_invincible = False
-    invincible_timer = 0
-    INVINCIBLE_TIME = 1000  # milliseconds (1 second of invincibility)
-
     font = pygame.font.Font(None, 36)
     # Flag to track if level_goal has been set
     level_goal_set = False
@@ -835,14 +722,8 @@ def Game(level_num):
                 Over(level_num)
 
         if enemy and player.colliderect(enemy):
-            if not player_invincible:
-                p -= 1
-                player_invincible = True
-                invincible_timer = pygame.time.get_ticks()
-            
-        if p <= 0:
-            pass
-            #Over(9)
+            running = False
+            Over(level_num)
 
         # Check for key and chest collision only if both exist
         if assets.key and assets.chest:  # Check if both key and chest exist
@@ -883,7 +764,21 @@ def Game(level_num):
             else:
                 Next_level(level_num)
 
-        draw_hud(win, font, level_num, score, collected, config, p, e)
+
+        # HUD Design - Top Line (50px thick)
+        # Draw a thin line at the top of the screen
+        pygame.draw.rect(win, LINE_COLOR, (0, 0, WIDTH, 40))  # 50px thick line
+
+        # Displaying level, goal, and mushroom collected info
+        level_text = font.render(f"LEVEL: {level_num}", True, TEXT_COLOR)
+        goal_text = font.render(f"GOAL: {score}/{20}", True, TEXT_COLOR)
+        collected_text = font.render(f"MUSHROOMS COLLECTED: {collected}", True, TEXT_COLOR)
+
+        # Positioning the text inside the 50px top line
+        # Adjusting the text positions for better alignment within the top strip
+        win.blit(level_text, (20, 10))  # Positioning the level text
+        win.blit(goal_text, (200, 10))  # Positioning the goal text
+        win.blit(collected_text, (400, 10))  # Positioning the collected text
 
         pygame.display.flip()
         clock.tick(60)
@@ -1196,11 +1091,6 @@ def Next_level(current_level):
     
  
 def Over(current_level):
-    global p
-    global e
-
-    p = 3
-    e = 3
     def retry_action():
         Game(current_level)
     
