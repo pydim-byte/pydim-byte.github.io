@@ -1,0 +1,114 @@
+def Game(level_num):
+    config = LEVELS[level_num]
+    
+    # Run TEST cutscene before level 2
+    if level_num == 2:
+        # Initialize pygame (if not already done)
+        pygame.init()
+        win = pygame.display.set_mode((WIDTH, HEIGHT))
+        clock = pygame.time.Clock()
+        
+        # Colors
+        RED = (255, 0, 0)
+        ORANGE = (255, 165, 0)
+        GOLD = (255, 215, 0)
+        BLACK = (0, 0, 0)
+        WHITE = (255, 255, 255)
+        BROWN = (139, 69, 19)
+        GREEN3 = (34, 139, 34)  # Assuming this is your background color
+        
+        # Simple assets with player and NPC
+        class TestAssets:
+            def __init__(self):
+                self.player_size = 40
+                self.player_rect = pygame.Rect(WIDTH//2 + 220, HEIGHT//2, self.player_size, self.player_size)
+                self.npc1 = pygame.Rect(500, HEIGHT//2, 32, 32)
+                self.bad_mushrooms = []
+                self.mushroom_radius = 15
+                self.rect_coords = []
+                blockSize = 40
+
+                for x in range(50, WIDTH - 400, blockSize):
+                    for y in range(50, HEIGHT - 50, blockSize):
+                        if (x // blockSize + y // blockSize) % 3 == 0:
+                            self.rect_coords.append((x, y))
+                            mushroom_rect = pygame.Rect(x, y, self.mushroom_radius*2, self.mushroom_radius)
+                            self.bad_mushrooms.append(mushroom_rect)
+            
+            @property
+            def player(self):
+                return self.player_rect
+            
+            def draw_player(self):
+                x, y = self.player_rect.centerx, self.player_rect.centery
+                pygame.draw.ellipse(win, RED, (x - 30, y - 40, 60, 50))
+                pygame.draw.circle(win, ORANGE, (x, y), self.player_size // 2)
+                pygame.draw.circle(win, GOLD, (x - 22, y - 18), 6)
+                pygame.draw.circle(win, GOLD, (x + 24, y - 12), 5)
+                pygame.draw.circle(win, GOLD, (x - 14, y - 32), 4)
+                pygame.draw.circle(win, GOLD, (x - 4, y - 26), 5)
+                pygame.draw.circle(win, GOLD, (x + 13, y - 28), 6)
+                pygame.draw.circle(win, BLACK, (x - 10, y - 10), 5)
+                pygame.draw.circle(win, BLACK, (x + 10, y - 10), 5)
+                pygame.draw.arc(win, BLACK, (x - 10, y + 0, 20, 15), 0, 3.14, 2)
+            
+            def draw_mushrooms(self):
+                for b in self.bad_mushrooms:
+                    stem_height = 15
+                    stem_width = 6
+                    stem_x = b.centerx - stem_width//2
+                    stem_y = b.bottom
+                    pygame.draw.rect(win, BROWN, (stem_x, stem_y, stem_width, stem_height))
+                    pygame.draw.ellipse(win, RED, b)
+                    spot_size = self.mushroom_radius // 3
+                    pygame.draw.ellipse(win, BLACK, (b.x + 5, b.y + 3, spot_size, spot_size))
+                    pygame.draw.ellipse(win, BLACK, (b.x + 20, b.y + 3, spot_size, spot_size))
+            
+            def draw(self):
+                self.draw_mushrooms()
+                self.draw_player()
+
+        assets = TestAssets()
+        cutscene = Cutscene([
+            {"entity": "player", "text": "This evil mushrooms will stop him!", "duration": 200},
+            {"entity": "player", "move_to": (WIDTH + 1000, HEIGHT//2), "duration": 120}
+        ])
+        cutscene.start(assets)
+        
+        running_cutscene = True
+        while running_cutscene:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:  # Skip with space
+                        running_cutscene = False
+            
+            win.fill(GREEN3)
+            assets.draw()
+            cutscene.update()
+            cutscene.draw(win)
+            
+            # Show skip prompt
+            font = pygame.font.Font(None, 24)
+            skip_text = font.render("Press SPACE to skip", True, WHITE)
+            win.blit(skip_text, (WIDTH - 150, HEIGHT - 30))
+            
+            pygame.display.flip()
+            clock.tick(60)
+            
+            if not cutscene.is_running:
+                running_cutscene = False
+
+    # Now proceed with the actual game
+    assets = Assets(config)
+    running = True
+    score = 0
+    global p
+    global e 
+    
+    # Rest of your existing Game function...
+    e_damaged = False
+    damage_timer = 0
+    # ... continue with the rest of your existing code
