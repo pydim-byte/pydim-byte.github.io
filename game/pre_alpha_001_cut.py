@@ -90,6 +90,7 @@ max_level = len(LEVELS)
 class Assets:
     def __init__(self, config):
         global MODE
+        self.enemy_speed = 8
         # Initialize with the config data first
         self.with_chest = config.get("with_chest", False)  # First, initialize with_chest from config
 
@@ -112,6 +113,7 @@ class Assets:
         self.player_speed = self.min_speed  # Current player speed
         self.mushroom_radius = 15
         self.mushrooms = []  # Mushrooms currently visible on the screen
+        
         
         self.mushrooms_spawned = 0
 
@@ -137,8 +139,10 @@ class Assets:
         self.boss_cooldown = 60
         self.not_super = True
         self.super_state = False  # Add this line
+        self.first_chase = True
         self.super_timer = 0      # Timer for super state duration
         self.projectiles = []
+        self.boss_shot_offset = 0 
 
         self.last_spawn_time = 0  # Time of the last mushroom spawn (in ms)
         self.spawn_interval = 500  # 2 seconds in milliseconds
@@ -155,6 +159,21 @@ class Assets:
             for y in range(50, HEIGHT - 50, blockSize):
                 rect = pygame.Rect(x, y, blockSize, blockSize)
                 self.rect_coords.append((x, y))  
+
+    def draw(self):
+        """Basic draw method for cutscene rendering"""
+        # Draw player (simplified version for cutscene)
+        pygame.draw.rect(win, (255, 0, 0), self.player)
+        
+        # Draw any other elements needed for the cutscene
+        if hasattr(self, 'npc'):
+            pygame.draw.rect(win, (0, 0, 255), self.npc)
+        
+        # Draw bad mushrooms if they exist
+        if hasattr(self, 'bad_mushrooms'):
+            for b in self.bad_mushrooms:
+                pygame.draw.ellipse(win, RED, b)
+                # Draw stems and spots as needed
 
     def Key(self):
         # Safe draw (no error if key has been removed)
@@ -190,7 +209,6 @@ class Assets:
     def Enemy(self):
         enemy = self.enemy
         with_enemy = self.with_enemy
-        enemy_speed = 8
 
         player = self.player
         player_invincible = False
@@ -200,6 +218,7 @@ class Assets:
         enemy_size = self.player_size
         global p
         global e
+        first_chase = self.first_chase
 
         center_x = WIDTH / 2
         center_y = HEIGHT / 2 - 20
@@ -234,28 +253,35 @@ class Assets:
 
             if cycle_time < chase_duration:
                 shooting = False
+                if not self.first_chase:
+                    super = True  # Only set super to True after the first chase
                 self.boss_cooldown = 60
+
                 # --- Chase phase ---
                 x_dist = enemy.centerx - player.centerx
                 y_dist = enemy.centery - player.centery
                 dist = (x_dist ** 2 + y_dist ** 2) ** 0.5 + 1
-                x_vel = x_dist / dist * enemy_speed
-                y_vel = y_dist / dist * enemy_speed
+                x_vel = x_dist / dist * self.enemy_speed
+                y_vel = y_dist / dist * self.enemy_speed
 
                 enemy.centerx -= x_vel
                 enemy.centery -= y_vel
 
+                
+
+
             elif cycle_time < chase_duration + run_duration:
                 shooting = True
-                super = True
+                self.first_chase = False
+                self.not_super = True
                 # Run to center
                 x2 = center_x - enemy.centerx
                 y2 = center_y - enemy.centery
                 dist_c = (x2**2 + y2**2)**0.5
 
                 if dist_c > 5:  # far from center
-                    xc_vel = x2 / dist_c * enemy_speed
-                    yc_vel = y2 / dist_c * enemy_speed
+                    xc_vel = x2 / dist_c * self.enemy_speed
+                    yc_vel = y2 / dist_c * self.enemy_speed
                     enemy.centerx = round(enemy.centerx + xc_vel)
                     enemy.centery = round(enemy.centery + yc_vel)
                 else:  # close enough, snap to center
@@ -283,26 +309,30 @@ class Assets:
                 pygame.draw.circle(win, RED, proj["rect"].center, 10)
                 if not win.get_rect().colliderect(proj["rect"]):
                     self.projectiles.remove(proj)
-
-            if not player_invincible:
-                for proj in self.projectiles[:]:
-                    if player.colliderect(proj["rect"]):
-                        if not player_invincible:
-                            p -= 1  # reduce health
-                            player_invincible = True
-                            invincible_timer = pygame.time.get_ticks()
-                        # Remove or ignore this projectile after collision
-                        self.projectiles.remove(proj)
-                        break  # stop checking other projectiles this frame
-
+            
+            if not self.super_state:
+                if not player_invincible:
+                    for proj in self.projectiles[:]:
+                        if player.colliderect(proj["rect"]):
+                            if not player_invincible:
+                                p -= 1  # reduce health
+                                player_invincible = True
+                                invincible_timer = pygame.time.get_ticks()
+                            # Remove or ignore this projectile after collision
+                            self.projectiles.remove(proj)
+                            break  # stop checking other projectiles this frame
+            #Boss atack
             if shooting:
                 self.boss_cooldown -= 1
                 if self.boss_cooldown <= 0:
                     num_shots = 20
                     spread = 0.6  # radians
                     angle_to_player = math.atan2(dy, dx)
+                    
+                    # Randomly shift the center of the spread by up to 15 degrees
+                    center_offset = random.uniform(-0.2, 0.2)  # ~±11.5 degrees
                     for i in range(num_shots):
-                        angle = angle_to_player + (i - num_shots//2) * spread
+                        angle = angle_to_player + (i - num_shots//2) * spread + center_offset
                         vx = math.cos(angle) * 6
                         vy = math.sin(angle) * 6
                         self.projectiles.append({
@@ -310,10 +340,11 @@ class Assets:
                             "vx": vx,
                             "vy": vy
                         })
-                    self.boss_cooldown = 40  # 1 burst/sec
+                    self.boss_cooldown = 40
 
             if super and self.not_super:
                 self.not_super = False
+                super = False
                 if self.rect_coords:  # Check if there are still available positions
                     random_rects = random.sample(self.rect_coords, 1)
                     rand_x, rand_y = random_rects[0]
@@ -522,168 +553,160 @@ class Assets:
 
 
     def Mushroom(self):
-        """Create mushrooms and spikes, draw them, and return their rect lists."""
+        """Main method to handle all mushroom-related elements."""
+        self._handle_mushroom_spawning()
+        self._draw_mushrooms()
+        self._handle_spikes()
+        self._handle_bad_mushrooms()
+        return self.mushrooms, self.spike_rects, self.bad_mushrooms
+
+    def _handle_mushroom_spawning(self):
+        """Handle spawning of mushrooms based on level conditions."""
         mushroom_count = 20
         mushroom_time = pygame.time.get_ticks()
 
-        # If mushrooms should spawn immediately, generate them
-        if not self.with_chest and not self.with_enemy and self.mushrooms_spawned < mushroom_count: # Only spawn until we reach mushroom_count
+        if not self.with_chest and not self.with_enemy and self.mushrooms_spawned < mushroom_count:
             if self.sky_mushrooms:
-                # For sky mushrooms, spawn one by one with a delay
-                if len(self.mushrooms) == 0:  # First mushroom needs to wait for the delay
-                    self.last_spawn_time = mushroom_time - self.spawn_interval  # Set last_spawn_time to allow first mushroom to spawn immediately
-                if mushroom_time - self.last_spawn_time >= self.spawn_interval:
-                    # Spawn mushrooms only on y-coordinates 50, 100, 150
-                    possible_y_coords = [50, 100, 150]
-                    if self.mushrooms_spawned < mushroom_count and self.rect_coords:  # Check if we still need mushrooms and available positions
-                        random_rects = random.sample(self.rect_coords, 1)
-                        rand_x, _ = random_rects[0]
-                        rand_y = random.choice(possible_y_coords)  # Pick a random y from the allowed y-values
-                        x, y = rand_x, rand_y
-                        rect = pygame.Rect(x, y, self.mushroom_radius * 2, self.mushroom_radius * 2)
-                        self.mushrooms.append(rect)
-                        self.mushrooms_spawned += 1
-                        try:
-                            # Try to remove the coordinate if it exists in rect_coords
-                            self.rect_coords.remove((rand_x, rand_y))
-                        except ValueError:
-                            # If the coordinate is not found, skip the removal and move to the next mushroom
-                            pass
-                        self.last_spawn_time = mushroom_time  # Update last spawn time after mushroom spawn
+                self._spawn_sky_mushrooms(mushroom_time)
             else:
-                # Normal mushroom spawning (all at once)
-                if len(self.mushrooms) == 0:  # Only spawn once at the start of the level
-                    for _ in range(mushroom_count):
-                        if self.rect_coords:  # Check if there are still available positions
-                            random_rects = random.sample(self.rect_coords, 1)
-                            rand_x, rand_y = random_rects[0]
-                            x, y = rand_x, rand_y
-                            rect = pygame.Rect(x, y, self.mushroom_radius * 2, self.mushroom_radius * 2)
-                            self.mushrooms.append(rect)
-                            try:
-                                # Try to remove the coordinate if it exists in rect_coords
-                                self.rect_coords.remove((rand_x, rand_y))
-                            except ValueError:
-                                pass
+                self._spawn_normal_mushrooms()
 
-        # Draw mushrooms as usual
-        for m in self.mushrooms:
-            #Basicly fall code
-            if self.sky_mushrooms:
-                m.y += 2
-                if m.y > 600:
-                    Over(8)
-            pygame.draw.rect(win, BROWN, (m.centerx - 3, m.bottom - 10, 6, 10))  # stem
-            pygame.draw.ellipse(win, RED, (m.x, m.y, self.mushroom_radius * 2, self.mushroom_radius))  # cap
+    def _spawn_sky_mushrooms(self, current_time):
+        """Spawn mushrooms one by one with delay for sky mushrooms."""
+        if len(self.mushrooms) == 0:
+            self.last_spawn_time = current_time - self.spawn_interval
+            
+        if current_time - self.last_spawn_time >= self.spawn_interval:
+            possible_y_coords = [50, 100, 150]
+            if self.mushrooms_spawned < 20 and self.rect_coords:
+                random_rects = random.sample(self.rect_coords, 1)
+                rand_x, _ = random_rects[0]
+                rand_y = random.choice(possible_y_coords)
+                x, y = rand_x, rand_y
+                rect = pygame.Rect(x, y, self.mushroom_radius * 2, self.mushroom_radius * 2)
+                self.mushrooms.append(rect)
+                self.mushrooms_spawned += 1
+                try:
+                    self.rect_coords.remove((rand_x, rand_y))
+                except ValueError:
+                    pass
+                self.last_spawn_time = current_time
 
-
-
-            # Calculate direction to move mushroom towards player
-            x_dist = m.centerx - self.player.centerx
-            y_dist = m.centery - self.player.centery
-            dist = (x_dist ** 2 + y_dist ** 2) ** .5 + 1
-            x_vel = x_dist / dist * 1
-            y_vel = y_dist / dist * 1
-
-
-            if self.vacuum:
-                m.centerx -= x_vel
-                m.centery -= y_vel
-
-            if self.moving_mushrooms:
-                # Update position
-                m.centerx += x_vel
-                m.centery += y_vel
-
-                # Prevent mushrooms from going out of bounds (considering mushroom size)
-                if m.left < 0:  # Left boundary
-                    m.left = 0
-                elif m.right > win.get_width():  # Right boundary
-                    m.right = win.get_width()
-
-                if m.top < 40:  # Upper boundary (prevent going above 40 pixels)
-                    m.top = 40
-                elif m.bottom > win.get_height():  # Bottom boundary
-                    m.bottom = win.get_height()
-
-       
-
-
-
-        # Generate spikes once (if needed)
-        if self.with_spikes and not self.spikes_generated:
-            for _ in range(50):
-                if self.rect_coords:  # Ensure there are available positions for spikes
+    def _spawn_normal_mushrooms(self):
+        """Spawn all mushrooms at once for normal levels."""
+        if len(self.mushrooms) == 0:
+            for _ in range(20):
+                if self.rect_coords:
                     random_rects = random.sample(self.rect_coords, 1)
                     rand_x, rand_y = random_rects[0]
                     x, y = rand_x, rand_y
                     rect = pygame.Rect(x, y, self.mushroom_radius * 2, self.mushroom_radius * 2)
-                    # Remove the selected coordinates for spikes to avoid overlap
-                    self.rect_coords.remove((rand_x, rand_y))
+                    self.mushrooms.append(rect)
+                    try:
+                        self.rect_coords.remove((rand_x, rand_y))
+                    except ValueError:
+                        pass
 
-                    too_close = False
+    def _draw_mushrooms(self):
+        """Draw and update mushroom positions."""
+        for m in self.mushrooms:
+            # Falling code for sky mushrooms
+            if self.sky_mushrooms:
+                m.y += 2
+                if m.y > 600:
+                    Over(8)
+                    
+            # Draw mushroom
+            pygame.draw.rect(win, BROWN, (m.centerx - 3, m.bottom - 10, 6, 10))  # stem
+            pygame.draw.ellipse(win, RED, (m.x, m.y, self.mushroom_radius * 2, self.mushroom_radius))  # cap
 
-                    # Check for overlap with mushrooms
-                    for m in self.mushrooms:
-                        dist = math.sqrt((x - m.centerx) ** 2 + (y - m.centery) ** 2)
-                        if dist < self.safe_distance:
-                            too_close = True
-                            break
+            # Handle mushroom movement
+            self._update_mushroom_movement(m)
 
-                    # Check for overlap with the player
-                    if not too_close:
-                        px, py = self.player.center
-                        dist_to_player = math.sqrt((x - px) ** 2 + (y - py) ** 2)
-                        if dist_to_player < self.safe_distance:
-                            too_close = True
+    def _update_mushroom_movement(self, m):
+        """Update mushroom position based on game mechanics."""
+        # Calculate direction to move mushroom towards player
+        x_dist = m.centerx - self.player.centerx
+        y_dist = m.centery - self.player.centery
+        dist = (x_dist ** 2 + y_dist ** 2) ** .5 + 1
+        x_vel = x_dist / dist * 1
+        y_vel = y_dist / dist * 1
 
-                    # If it's safe, create a spike
-                    if not too_close:
-                        vertices = [(x, y), (x - 15, y - 30), (x + 15, y - 30)]
-                        self.spike.append(vertices)
-                        self.spike_rects.append(pygame.Rect(x - 15, y - 30, 30, 30))  # collision rect
+        if self.vacuum:
+            m.centerx -= x_vel
+            m.centery -= y_vel
 
+        if self.moving_mushrooms:
+            # Update position
+            m.centerx += x_vel
+            m.centery += y_vel
+
+            # Prevent mushrooms from going out of bounds
+            if m.left < 0:
+                m.left = 0
+            elif m.right > win.get_width():
+                m.right = win.get_width()
+
+            if m.top < 40:
+                m.top = 40
+            elif m.bottom > win.get_height():
+                m.bottom = win.get_height()
+
+    def _handle_spikes(self):
+        """Handle spike generation and drawing."""
+        if self.with_spikes and not self.spikes_generated:
+            self._generate_spikes()
             self.spikes_generated = True
 
         # Draw spikes
         for s in self.spike:
             pygame.draw.polygon(win, BLACK, s)
 
+    def _generate_spikes(self):
+        """Generate spike positions ensuring they don't overlap with other objects."""
+        for _ in range(50):
+            if self.rect_coords:
+                random_rects = random.sample(self.rect_coords, 1)
+                rand_x, rand_y = random_rects[0]
+                x, y = rand_x, rand_y
+                rect = pygame.Rect(x, y, self.mushroom_radius * 2, self.mushroom_radius * 2)
+                self.rect_coords.remove((rand_x, rand_y))
 
+                too_close = False
 
-        # Generate bad mushrooms (if needed)
-        if self.with_bad_mushrooms and not self.bad_mushrooms:
-            for _ in range(20):
-                while True:
-                    if self.rect_coords:  # Ensure there are available positions for spikes
-                        random_rects = random.sample(self.rect_coords, 1)
-                        rand_x, rand_y = random_rects[0]
-                        x, y = rand_x, rand_y
-                        rect = pygame.Rect(x, y, self.mushroom_radius * 2, self.mushroom_radius * 2)
-                        # Remove the selected coordinates for spikes to avoid overlap
-                        self.rect_coords.remove((rand_x, rand_y))
-
-                    too_close = False
-
-                    # Too close to a mushroom?
-                    for m in self.mushrooms:
-                        dist = math.sqrt((x - m.centerx) ** 2 + (y - m.centery) ** 2)
-                        if dist < self.safe_distance:
-                            too_close = True
-                            break
-
-                    # Too close to player?
-                    if not too_close:
-                        px, py = self.player.center
-                        dist_to_player = math.sqrt((x - px) ** 2 + (y - py) ** 2)
-                        if dist_to_player < self.safe_distance:
-                            too_close = True
-
-                    if not too_close:
-                        vertices = [(x, y), (x - 15, y + 30), (x + 15, y + 30)]
-                        self.bad_mushrooms.append(pygame.Rect(x - 15, y, 30, 30))  # collision rect
+                # Check for overlap with mushrooms
+                for m in self.mushrooms:
+                    dist = math.sqrt((x - m.centerx) ** 2 + (y - m.centery) ** 2)
+                    if dist < self.safe_distance:
+                        too_close = True
                         break
 
+                # Check for overlap with the player
+                if not too_close:
+                    px, py = self.player.center
+                    dist_to_player = math.sqrt((x - px) ** 2 + (y - py) ** 2)
+                    if dist_to_player < self.safe_distance:
+                        too_close = True
+
+                # If it's safe, create a spike
+                if not too_close:
+                    vertices = [
+                        (x, y),  # Base point
+                        (x - 10, y + 25),  # Left point
+                        (x - 5, y + 15),   # Left middle
+                        (x - 15, y + 30),  # Left outer
+                        (x + 2, y + 20),   # Center middle
+                        (x + 15, y + 30),  # Right outer
+                        (x + 5, y + 15),   # Right middle
+                        (x + 10, y + 25)   # Right point
+                    ]
+                    self.spike.append(vertices)
+                    self.spike_rects.append(pygame.Rect(x - 15, y, 30, 30))
+
+    def _handle_bad_mushrooms(self):
+        """Handle bad mushroom generation and drawing."""
+        if self.with_bad_mushrooms and not self.bad_mushrooms:
+            self._generate_bad_mushrooms()
             self.spikes_generated = True
 
         # Draw bad mushrooms
@@ -693,7 +716,37 @@ class Assets:
             pygame.draw.ellipse(win, BLACK, (b.x + 5, b.y + 3, self.mushroom_radius // 3, self.mushroom_radius // 3))
             pygame.draw.ellipse(win, BLACK, (b.x + 20, b.y + 3, self.mushroom_radius // 3, self.mushroom_radius // 3))
 
-        return self.mushrooms, self.spike_rects, self.bad_mushrooms
+    def _generate_bad_mushrooms(self):
+        """Generate bad mushroom positions ensuring they don't overlap with other objects."""
+        for _ in range(20):
+            while True:
+                if self.rect_coords:
+                    random_rects = random.sample(self.rect_coords, 1)
+                    rand_x, rand_y = random_rects[0]
+                    x, y = rand_x, rand_y
+                    rect = pygame.Rect(x, y, self.mushroom_radius * 2, self.mushroom_radius * 2)
+                    self.rect_coords.remove((rand_x, rand_y))
+
+                too_close = False
+
+                # Too close to a mushroom?
+                for m in self.mushrooms:
+                    dist = math.sqrt((x - m.centerx) ** 2 + (y - m.centery) ** 2)
+                    if dist < self.safe_distance:
+                        too_close = True
+                        break
+
+                # Too close to player?
+                if not too_close:
+                    px, py = self.player.center
+                    dist_to_player = math.sqrt((x - px) ** 2 + (y - py) ** 2)
+                    if dist_to_player < self.safe_distance:
+                        too_close = True
+
+                if not too_close:
+                    vertices = [(x, y), (x - 15, y + 30), (x + 15, y + 30)]
+                    self.bad_mushrooms.append(pygame.Rect(x - 15, y, 30, 30))  # collision rect
+                    break
 
     def Flood(self):
         """Generate flooding effect by spawning rectangles, checking overlap, and drawing them."""
@@ -795,6 +848,9 @@ def Game(level_num):
     score = 0
     global p
     global e 
+    
+    e_damaged = False
+    damage_timer = 0
 
     player_invincible = False
     invincible_timer = 0
@@ -810,6 +866,47 @@ def Game(level_num):
     # Colors
     TEXT_COLOR = (255, 255, 255)  # White text
     LINE_COLOR = (0, 0, 0)  # Black background for top line
+
+
+    if level_num == 2:
+        # Define the cutscene actions
+        cutscene_actions = [
+            {"entity": "player", "move_to": (WIDTH//2, HEIGHT//2), "text": "This level looks more dangerous!", "duration": 90},
+            {"entity": "player", "move_to": (WIDTH//3, HEIGHT//2), "text": "Those mushrooms look poisonous...", "duration": 90},
+            {"text": "Better watch my step!", "duration": 120}
+        ]
+        
+        # Create and run the cutscene
+        cutscene = Cutscene(cutscene_actions)
+        cutscene.start(assets)
+        
+        # Run the cutscene loop
+        cutscene_running = True
+        while cutscene_running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:  # Allow skipping with space
+                        cutscene_running = False
+            
+            win.fill(assets.level_color)
+            assets.draw()  # You'll need to implement a basic draw method in Assets
+            cutscene.update()
+            cutscene.draw(win)
+            
+            # Show skip prompt
+            font = pygame.font.Font(None, 24)
+            skip_text = font.render("Press SPACE to skip", True, (255, 255, 255))
+            win.blit(skip_text, (WIDTH - 150, HEIGHT - 30))
+            
+            pygame.display.flip()
+            clock.tick(60)
+            
+            if not cutscene.is_running:
+                cutscene_running = False
+
 
     while running:
         for event in pygame.event.get():
@@ -850,21 +947,58 @@ def Game(level_num):
                 running = False
                 Over(level_num)
 
+        
+        
+
+            
+
+        if (pygame.time.get_ticks() - damage_timer) > 500:
+            assets.enemy_speed = 8
+            
+
         if enemy and player.colliderect(enemy):
             if assets.super_state:
                 e -= 1
+                assets.enemy_speed = -16
+                damage_timer = pygame.time.get_ticks()
+                assets.super_state = False
+                
+                # --- Push both away from each other ---
+                dx = enemy.centerx - player.centerx
+                dy = enemy.centery - player.centery
+                dist = math.hypot(dx, dy) or 1  # avoid division by zero
+                push_distance = 50  # how far to push
+
+                # normalize vector
+                nx, ny = dx / dist, dy / dist
+
+                # push enemy
+                enemy.centerx += int(nx * push_distance)
+                enemy.centery += int(ny * push_distance)
+
+                # push player opposite way
+                player.centerx -= int(nx * push_distance)
+                player.centery -= int(ny * push_distance)
+
+                # clamp to screen
+                player.clamp_ip(win.get_rect())
+                enemy.clamp_ip(win.get_rect())
             elif not assets.super_state and not player_invincible:
                 p -= 1
                 player_invincible = True
                 invincible_timer = pygame.time.get_ticks()
-            
-        if p <= 0:
+
+        if (invincible_timer - pygame.time.get_ticks()):
             pass
-            #Over(9)
+
+        
+        if p <= 0:
+            #pass
+            Over(9)
 
         if e <= 0:
-            pass
-            #Victory()
+            #pass
+            assets.release_mushrooms
 
         # Check for key and chest collision only if both exist
         if assets.key and assets.chest:  # Check if both key and chest exist
@@ -872,7 +1006,8 @@ def Game(level_num):
                 assets.key = None
                 assets.chest = None
 
-
+        if (pygame.time.get_ticks()- invincible_timer) > INVINCIBLE_TIME:
+            player_invincible = False
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_r]:
@@ -1446,6 +1581,10 @@ class BaseMenu:
             clock.tick(60)
 
 def Menu():
+    global p
+    global e
+    p = 3
+    e = 3
     def play_action():
         Game(1)
     def quit_action():
@@ -1557,37 +1696,51 @@ def Skin_menu():
 def Level_select():
     def level_action(num):
         Game(num)
-    
+
     def back_action():
         Menu()
 
+    def show_page(page):
+        """Update menu buttons based on page number."""
+        buttons.clear()
+        if page == 1:
+            buttons.extend([
+                Button("Level 1", WIDTH//2-100, HEIGHT//2-270, 200, 60, button_color, lambda: level_action(1), text_color),
+                Button("Level 2", WIDTH//2-100, HEIGHT//2-160, 200, 60, button_color, lambda: level_action(2), text_color),
+                Button("Level 3", WIDTH//2-100, HEIGHT//2-60, 200, 60, button_color, lambda: level_action(3), text_color),
+                Button("Level 4", WIDTH//2-100, HEIGHT//2+40, 200, 60, button_color, lambda: level_action(4), text_color),
+                Button("Next", WIDTH//2-100, HEIGHT//2+130, 200, 60, button_color, lambda: show_page(2), text_color),
+                Button("Back", WIDTH//2-100, HEIGHT//2+220, 200, 60, button_color, back_action, text_color)
+            ])
+        elif page == 2:
+            buttons.extend([
+                Button("Level 5", WIDTH//2-100, HEIGHT//2-270, 200, 60, button_color, lambda: level_action(5), text_color),
+                Button("Level 6", WIDTH//2-100, HEIGHT//2-160, 200, 60, button_color, lambda: level_action(6), text_color),
+                Button("Level 7", WIDTH//2-100, HEIGHT//2-60, 200, 60, button_color, lambda: level_action(7), text_color),
+                Button("Level 8", WIDTH//2-100, HEIGHT//2+40, 200, 60, button_color, lambda: level_action(8), text_color),
+                Button("Level 9", WIDTH//2-100, HEIGHT//2+130, 200, 60, button_color, lambda: level_action(9), text_color),
+                Button("Back", WIDTH//2-100, HEIGHT//2+220, 200, 60, button_color, lambda: show_page(1), text_color)
+            ])
+
     # Forest-themed colors
-    button_color = (139, 69, 19)  # Brown
-    text_color = (255, 255, 255)  # White
+    button_color = (139, 69, 19)
+    text_color = (255, 255, 255)
+    buttons = []
 
-    # Buttons with consistent forest styling
-    L1_button = Button("Level 1", WIDTH//2-100, HEIGHT//2-200, 200, 60, 
-                      button_color, lambda: level_action(1), text_color)
-    L2_button = Button("Level 2", WIDTH//2-100, HEIGHT//2-100, 200, 60,
-                      button_color, lambda: level_action(2), text_color)
-    L3_button = Button("Level 3", WIDTH//2-100, HEIGHT//2, 200, 60,
-                      button_color, lambda: level_action(3), text_color)
-    L4_button = Button("Level 4", WIDTH//2-100, HEIGHT//2+100, 200, 60,
-                      button_color, lambda: level_action(4), text_color)
-    Back_button = Button("Back", WIDTH//2-100, HEIGHT//2+200, 200, 60,
-                        button_color, back_action, text_color)
+    # Create initial menu
+    show_page(1)
 
-    # Create menu instance
+    # Menu object (uses dynamic `buttons` list)
     level_menu = BaseMenu(
         win,
         font_medium,
         font_large,
-        "",  # Empty title string
-        [L1_button, L2_button, L3_button, L4_button, Back_button],
-        use_gradient=True,
+        "",
+        buttons,
+        use_gradient=True
     )
 
-    # Key to level mapping
+    # Keyboard mapping
     key_mapping = {
         pygame.K_1: 1,
         pygame.K_2: 2,
@@ -1608,11 +1761,11 @@ def Level_select():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            
-            # Handle mouse events
+
+            # Handle mouse clicks
             level_menu.handle_events(event)
-            
-            # Handle keyboard events
+
+            # Handle keyboard
             if event.type == pygame.KEYDOWN:
                 if event.key in key_mapping:
                     level_action(key_mapping[event.key])
@@ -1620,11 +1773,11 @@ def Level_select():
                 elif event.key == pygame.K_ESCAPE:
                     back_action()
                     running = False
-        
-        # Draw everything
+
         level_menu.draw()
         pygame.display.flip()
         clock.tick(60)
+
 
 
 def Victory():
@@ -1872,24 +2025,104 @@ def TEST():
     win = pygame.display.set_mode((WIDTH, HEIGHT))
     clock = pygame.time.Clock()
     
+    # Constants for colors
+    RED = (255, 0, 0)
+    ORANGE = (255, 165, 0)
+    GOLD = (255, 215, 0)
+    BLACK = (0, 0, 0)
+    WHITE = (255, 255, 255)
+    BROWN = (139, 69, 19)  # Color for mushroom stems
+    
+    # Simple assets with player and NPC
+def TEST():
+    # Initialize pygame
+    pygame.init()
+    win = pygame.display.set_mode((WIDTH, HEIGHT))
+    clock = pygame.time.Clock()
+    
+    # Constants for colors
+    RED = (255, 0, 0)
+    ORANGE = (255, 165, 0)
+    GOLD = (255, 215, 0)
+    BLACK = (0, 0, 0)
+    WHITE = (255, 255, 255)
+    BROWN = (139, 69, 19)  # Color for mushroom stems
+    
     # Simple assets with player and NPC
     class TestAssets:
         def __init__(self):
-            self.player = pygame.Rect(100, HEIGHT//2, 32, 32)
+            self.player_size = 40
+            # Create a rect to represent the player's position and size
+            self.player_rect = pygame.Rect(WIDTH//2 + 220, HEIGHT//2, self.player_size, self.player_size)
             self.npc1 = pygame.Rect(500, HEIGHT//2, 32, 32)
+            
+            # Create mushrooms at grid coordinates
+            self.bad_mushrooms = []
+            self.mushroom_radius = 15
+            self.rect_coords = []
+            blockSize = 40
+
+            # Loop through the grid and get coordinates
+            for x in range(50, WIDTH - 400, blockSize):
+                for y in range(50, HEIGHT - 50, blockSize):
+                    # Only place mushrooms at certain positions (every 3rd cell)
+                    if (x // blockSize + y // blockSize) % 3 == 0:
+                        self.rect_coords.append((x, y))
+                        mushroom_rect = pygame.Rect(x, y, self.mushroom_radius*2, self.mushroom_radius)
+                        self.bad_mushrooms.append(mushroom_rect)
+        
+        @property
+        def player(self):
+            return self.player_rect
+        
+        def draw_player(self):
+            # Draw all components of the player relative to player_rect
+            x, y = self.player_rect.centerx, self.player_rect.centery
+            
+            # Draw the main body (ellipse for body, circle for head)
+            pygame.draw.ellipse(win, RED, (x - 30, y - 40, 60, 50))
+            pygame.draw.circle(win, ORANGE, (x, y), self.player_size // 2)
+
+            # Draw mushroom spots
+            pygame.draw.circle(win, GOLD, (x - 22, y - 18), 6)
+            pygame.draw.circle(win, GOLD, (x + 24, y - 12), 5)
+            pygame.draw.circle(win, GOLD, (x - 14, y - 32), 4)
+            pygame.draw.circle(win, GOLD, (x - 4, y - 26), 5)
+            pygame.draw.circle(win, GOLD, (x + 13, y - 28), 6)
+            
+            # Draw face
+            pygame.draw.circle(win, BLACK, (x - 10, y - 10), 5)
+            pygame.draw.circle(win, BLACK, (x + 10, y - 10), 5)
+            pygame.draw.arc(win, BLACK, (x - 10, y + 0, 20, 15), 0, 3.14, 2)
+        
+        def draw_mushrooms(self):
+            for b in self.bad_mushrooms:
+                # Draw stem (brown rectangle) - positioned below the cap
+                stem_height = 15
+                stem_width = 6
+                stem_x = b.centerx - stem_width//2
+                stem_y = b.bottom  # Start at bottom of cap
+                pygame.draw.rect(win, BROWN, (stem_x, stem_y, stem_width, stem_height))
+                
+                # Draw cap (red ellipse)
+                pygame.draw.ellipse(win, RED, b)
+                
+                # Draw spots (black ellipses)
+                spot_size = self.mushroom_radius // 3
+                pygame.draw.ellipse(win, BLACK, (b.x + 5, b.y + 3, spot_size, spot_size))
+                pygame.draw.ellipse(win, BLACK, (b.x + 20, b.y + 3, spot_size, spot_size))
         
         def draw(self):
-            pygame.draw.rect(win, (255, 0, 0), self.player)  # Red player
-            pygame.draw.rect(win, (0, 0, 255), self.npc1)    # Blue NPC
+            self.draw_mushrooms()  # Draw mushrooms first (in background)
+            self.draw_player()    # Then draw player
+
     
     assets = TestAssets()
     
     # Test cutscene with all steps
     cutscene = Cutscene([
-        {"entity": "npc1", "move_to": (WIDTH//2, HEIGHT//2), "text": "NPC moves first", "duration": 60},
-        {"entity": "player", "move_to": (WIDTH//3, HEIGHT//2), "text": "Now I move!", "duration": 60},
-        {"entity": "npc1", "move_to": (WIDTH//4, HEIGHT//3), "speed": 2, "text": "Going to meeting point"},
-        {"entity": "player", "move_to": (WIDTH//4, HEIGHT//3), "text": "Let's meet here!", "duration": 120}
+        {"entity": "player", "text": "This evil mushrooms will stop him!", "duration": 200},
+        {"entity": "player", "move_to": (WIDTH + 1000, HEIGHT//2), "duration": 120}
     ])
     
     cutscene.start(assets)
@@ -1901,22 +2134,15 @@ def TEST():
                 running = False
         
         # Update cutscene
-        running = cutscene.update()
+        cutscene.update()
         
         # Draw
-        win.fill((240, 240, 240))
+        win.fill(GREEN3)  # Light gray background
         assets.draw()
         cutscene.draw(win)
         
         # Debug info
         font = pygame.font.SysFont(None, 24)
-        debug_text = [
-            f"Current action: {cutscene.current_action}/{len(cutscene.actions)}",
-            f"NPC: ({assets.npc1.x}, {assets.npc1.y})",
-            f"Player: ({assets.player.x}, {assets.player.y})"
-        ]
-        for i, text in enumerate(debug_text):
-            win.blit(font.render(text, True, (0,0,0)), (10, 10 + i*25))
         
         pygame.display.flip()
         clock.tick(60)
