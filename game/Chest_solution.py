@@ -5,7 +5,7 @@ class Assets:
         self.key = pygame.Rect(690, 100, 18, 50)
         self.chest = pygame.Rect(678, 400, self.player_size, self.player_size)
         ...
-
+#HEY EASTER
     def Key(self):
         # Safe draw (no error if key has been removed)
         if not self.key:
